@@ -141,7 +141,10 @@
                                 </q-td>
                                 <q-td key="max_pixels" :props="props">
                                     <span v-if="props.row.type!='image'">-</span>
-                                    <span v-else="props.row.type=='image'">{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                                    <span v-else>{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                                </q-td>
+                                <q-td key="threads" :props="props">
+                                    <span>{{ props.row.threads }}</span>
                                 </q-td>
                                 <q-td key="models" :props="props">
                                     <span v-if="props.row.type=='interrogation'">-</span>
@@ -356,6 +359,13 @@
                             name: "max_pixels",
                             label: "Size",
                             field: "max_pixels",
+                            align: "right",
+                            sortable: true,
+                        },
+                        {
+                            name: "threads",
+                            label: "Threads",
+                            field: "threads",
                             align: "right",
                             sortable: true,
                         },
