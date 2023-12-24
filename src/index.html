@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Stable Horde - Workers</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons|Material+Icons+Outlined" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/quasar@2/dist/quasar.prod.css" rel="stylesheet" type="text/css">
+    <style>
+        .q-tr:not(.details) {
+            cursor: pointer;
+        }
+
+        tbody tr.search_positive td:after,
+        tbody tr.search_warning td:after {
+            content: '';
+            opacity: .4
+        }
+
+        .q-table--dark tbody tr.search_positive td:after,
+        .q-table--dark tbody tr.search_warning td:after {
+            opacity: .1
+        }
+
+        tbody tr.search_positive td:after {
+            background-color: var(--q-positive);
+        }
+
+        tbody tr.search_warning td:after {
+            background-color: var(--q-warning);
+        }
+
+        .q-table tbody td.tdIcon {
+            font-size: 1.5em;
+        }
+
+        .text2x {
+            font-size: 2em;
+        }
+
+        .model-aphrodite,
+        .model-kobold {
+            height: 2em;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+        }
+
+        .model-aphrodite {
+            background-image: url(/public/aphrodite.svg);
+        }
+
+        .model-kobold {
+            background-image: url(/public/kobold.svg);
+        }
+
+        .body--dark svg.icon path {
+            fill: white;
+        }
+
+        .body--dark .model-aphrodite {
+            background-image: url("/public/aphrodite-dark.svg");
+        }
+
+        .body--dark .model-kobold {
+            background-image: url("/public/kobold-dark.svg");
+        }
+    </style>
+</head>
+
+<body>
+    <div id="q-app">
+        <q-layout view="hHh lpR fFf" v-cloak>
+            <q-page-container>
+                <q-page padding>
+                    <h3>Stable Horde - Worker List</h3>
+                    <p>
+                        Currently active workers found at the <a href="https://stablehorde.net/" target="_blank">Stable Horde</a> project. Updates every minute. <a href="https://github.com/lianee/stablehorde-query" target="github"><svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58.0.0 3.67055.0 8.20235.0 11.8319 2.29 14.8975 5.47 15.9843 5.87 16.0561 6.02 15.81 6.02 15.5947 6.02 15.3999 6.01 14.754 6.01 14.067 4 14.4464 3.48 13.5646 3.32 13.1033 3.23 12.8674 2.84 12.1395 2.5 11.9447 2.22 11.7909 1.82 11.4115 2.49 11.4013 3.12 11.391 3.57 11.9959 3.72 12.242 4.44 13.4826 5.59 13.134 6.05 12.9187 6.12 12.3855 6.33 12.0267 6.56 11.8216c-1.78-.205-3.64-.9125-3.64-4.04987.0-.89201.31-1.63022.82-2.20438C3.66 5.36229 3.38 4.52155 3.82 3.39372c0 0 .67-.21531 2.2.84074C6.66 4.04991 7.34 3.95763 8.02 3.95763S9.38 4.04991 10.02 4.23446c1.53-1.0663 2.2-.84074 2.2-.84074C12.66 4.52155 12.38 5.36229 12.3 5.56735 12.81 6.14151 13.12 6.86947 13.12 7.77173c0 3.14767-1.87 3.84487-3.65 4.04987C9.76 12.078 10.01 12.5701 10.01 13.3391 10.01 14.4361 10 15.3179 10 15.5947 10 15.81 10.15 16.0664 10.55 15.9843 13.71 14.8975 16 11.8216 16 8.20235 16 3.67055 12.42.0 8 0z" fill="#000"></path>
+                            </svg> Github</a>
+                    </p>
+                    <div>
+                        <q-checkbox v-model="prefs.trusted" inline="" toggle-indeterminate="">Trusted</q-checkbox>
+                        <q-checkbox v-model="prefs.maintenance" inline="" toggle-indeterminate="">Maintenance</q-checkbox>
+                        <q-checkbox v-model="prefs.img2img" inline="" toggle-indeterminate="">img2img</q-checkbox>
+                        <q-checkbox v-model="prefs.painting" inline="" toggle-indeterminate="">painting</q-checkbox>
+                        <q-checkbox v-model="prefs.lora" inline="" toggle-indeterminate="">lora</q-checkbox>
+                    </div>
+                    <div>
+                        <q-checkbox inline="" v-model="prefs.typeImage">Dreamer ({{ wCount.image }})</q-checkbox>
+                        <q-checkbox inline="" v-model="prefs.typeText">Scribe ({{ wCount.text }})</q-checkbox>
+                        <q-checkbox inline="" v-model="prefs.typeInterrogation">Alchemist ({{ wCount.interrogation }})</q-checkbox>
+                    </div>
+                    <q-table :dense="$q.screen.lt.md" :columns="wFields" :rows="wDisplay" row-key="id" :loading="loading" hide-bottom :pagination="{sortBy: prefs.sortBy, descending: prefs.descending, rowsPerPage:0}" @update:pagination="wUpdatePagination">
+                        <template v-slot:top-right>
+                            <q-input borderless dense debounce="300" v-model="prefs.filter" placeholder="Search">
+                                <template v-slot:append>
+                                    <q-icon name="search" />
+                                </template>
+                            </q-input>
+                        </template>
+                        <template v-slot:body="props">
+                            <q-tr :props="props" @click="wRowClicked(props.row)" :class="'search_' + props.row._search">
+                                <q-td key="index" :props="props">
+                                    {{ props.rowIndex + 1 }}
+                                </q-td>
+                                <q-td key="type" :props="props">
+                                    <span v-if="props.row.type=='image'" class="material-icons-outlined">image</span>
+                                    <span v-else-if="props.row.type=='text'" class="material-icons-outlined">chat</span>
+                                    <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined">help</span>
+                                </q-td>
+                                <q-td key="name" :props="props">
+                                    {{ props.row.name }}
+                                </q-td>
+                                <q-td key="bridge_agent" :props="props">
+                                    <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined">bug_report</span>
+                                    <span v-else class="material-icons-outlined">verified</span>
+                                </q-td>
+                                <q-td key="trusted" :props="props">
+                                    <span v-if="props.row.trusted" class="material-icons-outlined">done</span>
+                                    <span v-else class="material-icons-outlined">close</span>
+                                </q-td>
+                                <q-td key="img2img" :props="props">
+                                    <span v-if="props.row.type!='image'">-</span>
+                                    <span v-else-if="props.row.img2img" class="material-icons-outlined">done</span>
+                                    <span v-else class="material-icons-outlined">close</span>
+                                </q-td>
+                                <q-td key="painting" :props="props">
+                                    <span v-if="props.row.type!='image'">-</span>
+                                    <span v-else-if="props.row.painting" class="material-icons-outlined">done</span>
+                                    <span v-else class="material-icons-outlined">close</span>
+                                </q-td>
+                                <q-td key="lora" :props="props">
+                                    <span v-if="props.row.type!='image'">-</span>
+                                    <span v-else-if="props.row.lora" class="material-icons-outlined">done</span>
+                                    <span v-else class="material-icons-outlined">close</span>
+                                </q-td>
+                                <q-td key="max_pixels" :props="props">
+                                    <span v-if="props.row.type!='image'">-</span>
+                                    <span v-else="props.row.type=='image'">{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                                </q-td>
+                                <q-td key="models" :props="props">
+                                    <span v-if="props.row.type=='interrogation'">-</span>
+                                    <span v-else-if="props.row.type=='image'">{{ props.row.models.length}}</span>
+                                    <div class="model-aphrodite text-center" v-else-if="props.row.type=='text' && props.row.models[0].indexOf('aphrodite')==0"></div>
+                                    <div class="model-kobold text-center" v-else-if="props.row.type=='text' && props.row.models[0].indexOf('kobold')==0"></div>
+                                    <div v-else-if="props.row.type=='text'" class="text-center"><span class="material-icons-outlined text2x" :title="props.row.models[0]">help</span></div>
+                                </q-td>
+                                <q-td key="uptime" :props="props">
+                                    {{ convertTime(props.row.uptime) }}
+                                </q-td>
+                                <q-td key="kudos_rewards" :props="props">
+                                    {{ new Intl.NumberFormat().format(props.row.kudos_rewards) }}
+                                </q-td>
+                                <q-td key="k/h" :props="props">
+                                    {{ new Intl.NumberFormat().format(Math.round(props.row.kudos_rewards / (props.row.uptime / 3600))) }}
+                                </q-td>
+                            </q-tr>
+                            <q-tr v-show="props.row._showDetails" :props="props" class="details">
+                                <q-td colspan="100%">
+                                    <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/XSx96LYVk/workers-image?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                                    <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/f60735cb-12bd-4759-b77f-d1fdf53cf0e7/workers-text?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                                    <pre>{{ props.row }}</pre>
+                                </q-td>
+                            </q-tr>
+                        </template>
+                    </q-table>
+                </q-page>
+            </q-page-container>
+        </q-layout>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios@1/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quasar@2/dist/quasar.umd.prod.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quasar@2/dist/lang/fr.umd.prod.js"></script>
+    <script>
+        var app = Vue.createApp({
+            setup () {
+                Quasar.lang.set(Quasar.lang.fr)
+                Quasar.Dark.set('auto')
+
+                const shWorkers = Vue.ref([])
+                const shUsers = Vue.ref([])
+                const prefs = Vue.ref({
+                    trusted: null,
+                    maintenance: null,
+                    img2img: null,
+                    painting: null,
+                    lora: null,
+                    typeImage: true,
+                    typeText: false,
+                    typeInterrogation: false,
+                    filter: "",
+                    sortBy: "k/h",
+                    descending: true
+                })
+                const loading = Vue.ref(false)
+
+                const LOCAL_STORAGE_KEY = "sw-sw3:prefs"
+                let data = window.localStorage.getItem(LOCAL_STORAGE_KEY)
+                if (data) {
+                    let x = JSON.parse(data)
+                    if (prefs) prefs.value = x
+                }
+                window.addEventListener("beforeunload", () => {
+                    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs.value))
+                })
+
+                const nbrFiltered = Vue.ref(0)
+
+                const wUpdateData = async () => {
+                    loading.value = true
+                    let details = shWorkers.value
+                        .filter((w) => {
+                            return w._showDetails
+                        })
+                        .map((w) => w.id)
+                    let response = await axios.get("https://stablehorde.net/api/v2/workers")
+                    shWorkers.value = response.data.map((w) => {
+                        if (details.indexOf(w.id) != -1) {
+                            w._showDetails = true
+                        }
+                        if (w.models) w.models.sort()
+                        return w
+                    })
+                    loading.value = false
+                }
+
+                wUpdateData()
+                setInterval(wUpdateData, 60 * 1000)
+
+                const convertTime = (secs) => {
+                    let s = secs % 60
+                    secs = Math.floor(secs / 60)
+                    let m = secs % 60
+                    secs = Math.floor(secs / 60)
+                    let h = secs % 24
+                    secs = Math.floor(secs / 24)
+                    let d = secs
+                    if (!d) {
+                        if (!h) {
+                            return m + "m"
+                        }
+                        return h + "h " + m + "m"
+                    } else {
+                        return d + "d " + h + "h " + m + "m"
+                    }
+                }
+
+                return {
+                    shWorkers,
+                    wCount: Vue.computed(() => {
+                        return shWorkers.value.reduce((acc, val) => {
+                            if (!acc[val.type]) acc[val.type] = 1
+                            else acc[val.type]++
+                            return acc
+                        }, {})
+                    }),
+                    shUsers,
+                    wDisplay: Vue.computed(() => {
+                        return shWorkers.value.filter(w => {
+                            let result = true
+                            if (w.type == "image" && !prefs.value.typeImage) result = false
+                            if (w.type == "text" && !prefs.value.typeText) result = false
+                            if (w.type == "interrogation" && !prefs.value.typeInterrogation) result = false
+                            if (prefs.value.trusted != undefined && prefs.value.trusted != w.trusted) result = false
+                            if (prefs.value.maintenance != undefined && prefs.value.maintenance != w.maintenance_mode) result = false
+                            if (prefs.value.img2img != undefined && prefs.value.img2img != w.img2img) result = false
+                            if (prefs.value.painting != undefined && prefs.value.painting != w.painting) result = false
+                            if (prefs.value.lora != undefined && prefs.value.lora != w.lora) result = false
+                            return result
+                        }).map((w) => {
+                            if (prefs.value.filter && w.name.toLowerCase().indexOf(prefs.value.filter.toLowerCase()) != -1) {
+                                if (w.maintenance_mode) {
+                                    w._search = "warning"
+                                } else {
+                                    w._search = "positive"
+                                }
+                            } else {
+                                w._search = null
+                            }
+                            return w
+                        })
+                    }),
+                    prefs,
+                    loading,
+                    nbrFiltered,
+                    onFiltered (filteredItems, nbr) {
+                        nbrFiltered.value = nbr
+                    },
+                    convertTime,
+                    wFields: [
+                        {
+                            name: "index",
+                            label: "",
+                            align: "right",
+                        },
+                        {
+                            name: "type",
+                            field: "type",
+                            label: "",
+                            classes: 'tdIcon'
+                        },
+                        {
+                            name: "name",
+                            label: "Name",
+                            field: "name",
+                            align: "left",
+                            sortable: true
+                        },
+                        {
+                            name: "bridge_agent",
+                            label: "Worker",
+                            field: "bridge_agent",
+                            align: "center",
+                            classes: (row) => 'tdIcon ' + (row.maintenance_mode ? "text-negative" : "text-positive")
+                        },
+                        {
+                            name: "trusted",
+                            field: "trusted",
+                            label: "Trusted",
+                            sortable: true,
+                            align: "center",
+                            classes: (row) => 'tdIcon ' + (row.trusted ? "text-positive" : "text-warning"),
+                        },
+                        {
+                            name: "img2img",
+                            label: "img2img",
+                            field: "img2img",
+                            sortable: true,
+                            align: "center",
+                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.img2img ? "text-positive" : "text-warning") : ''
+                        },
+                        {
+                            name: "painting",
+                            label: "painting",
+                            field: "painting",
+                            sortable: true,
+                            align: "center",
+                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.painting ? "text-positive" : "text-warning") : ''
+                        },
+                        {
+                            name: "lora",
+                            label: "lora",
+                            field: "lora",
+                            sortable: true,
+                            align: "center",
+                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.lora ? "text-positive" : "text-warning") : ''
+                        },
+                        {
+                            name: "max_pixels",
+                            label: "Size",
+                            field: "max_pixels",
+                            align: "right",
+                            sortable: true,
+                        },
+                        {
+                            name: "models",
+                            label: "Models",
+                            field: row => { if (row.models) return row.models.length },
+                            align: "right",
+                            sortable: true,
+                        },
+                        {
+                            name: "uptime",
+                            label: "Uptime",
+                            field: "uptime",
+                            align: "right",
+                            class: "text-nowrap",
+                            sortable: true,
+                        },
+                        {
+                            name: "kudos_rewards",
+                            label: "Kudos",
+                            field: "kudos_rewards",
+                            align: "right",
+                            class: "text-nowrap",
+                            sortable: true,
+                        },
+                        {
+                            name: "k/h",
+                            label: "k/h",
+                            align: "right",
+                            field: row => Math.round(row.kudos_rewards / (row.uptime / 3600)),
+                            sortable: true,
+                            sortByFormatted: true,
+                        },
+                    ],
+                    wRowClicked (row) {
+                        row._showDetails = !row._showDetails
+                    },
+                    wUpdatePagination (pagination) {
+                        prefs.value.sortBy = pagination.sortBy
+                        prefs.value.descending = pagination.descending
+                    }
+                }
+            }
+        })
+        app.use(Quasar)
+        app.mount('#q-app')
+    </script>
+</body>
+
+</html>
