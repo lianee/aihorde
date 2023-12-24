@@ -43,7 +43,8 @@
         }
 
         .model-aphrodite,
-        .model-kobold {
+        .model-kobold,
+        .model-pygmalion {
             height: 2em;
             background-position: center;
             background-repeat: no-repeat;
@@ -52,6 +53,10 @@
 
         .model-aphrodite {
             background-image: url("public/aphrodite.svg");
+        }
+
+        .model-pygmalion {
+            background-image: url("public/pygmalion.svg");
         }
 
         .model-kobold {
@@ -149,8 +154,9 @@
                                 <q-td key="models" :props="props">
                                     <span v-if="props.row.type=='interrogation'">-</span>
                                     <span v-else-if="props.row.type=='image'">{{ props.row.models.length}}</span>
-                                    <div class="model-aphrodite text-center" v-else-if="props.row.type=='text' && props.row.models[0].indexOf('aphrodite')==0"></div>
-                                    <div class="model-kobold text-center" v-else-if="props.row.type=='text' && props.row.models[0].indexOf('kobold')==0"></div>
+                                    <div class="model-aphrodite text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('aphrodite')==0" :title="props.row.models[0]"></div>
+                                    <div class="model-kobold text-center" v-else-if="props.row.type=='text' && (props.row.models[0].toLowerCase().indexOf('kobold')==0 || props.row.models[0].toLowerCase().indexOf('henk717')==0)" :title="props.row.models[0]"></div>
+                                    <div class="model-pygmalion text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('pygmalion')==0" :title="props.row.models[0]"></div>
                                     <div v-else-if="props.row.type=='text'" class="text-center"><span class="material-icons-outlined text2x" :title="props.row.models[0]">help</span></div>
                                 </q-td>
                                 <q-td key="uptime" :props="props">
