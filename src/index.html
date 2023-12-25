@@ -114,16 +114,16 @@
                                     {{ props.rowIndex + 1 }}
                                 </q-td>
                                 <q-td key="type" :props="props">
-                                    <span v-if="props.row.type=='image'" class="material-icons-outlined">image</span>
-                                    <span v-else-if="props.row.type=='text'" class="material-icons-outlined">chat</span>
-                                    <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined">help</span>
+                                    <span v-if="props.row.type=='image'" class="material-icons-outlined" title="Dreamer">image</span>
+                                    <span v-else-if="props.row.type=='text'" class="material-icons-outlined" title="Scribe">chat</span>
+                                    <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined" title="Alchemist">image_search</span>
                                 </q-td>
                                 <q-td key="name" :props="props">
                                     {{ props.row.name }}
                                 </q-td>
                                 <q-td key="bridge_agent" :props="props">
-                                    <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined">bug_report</span>
-                                    <span v-else class="material-icons-outlined">verified</span>
+                                    <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined" :title="'regen' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
+                                    <span v-else class="material-icons-outlined" :title="'legacy' + (props.row.maintenance_mode ? ', maintenance mode' : '')">verified</span>
                                 </q-td>
                                 <q-td key="trusted" :props="props">
                                     <span v-if="props.row.trusted" class="material-icons-outlined">done</span>
@@ -173,7 +173,7 @@
                                 <q-td colspan="100%">
                                     <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/XSx96LYVk/workers-image?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
                                     <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/f60735cb-12bd-4759-b77f-d1fdf53cf0e7/workers-text?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                                    <pre>{{ props.row }}</pre>
+                                    <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
                                 </q-td>
                             </q-tr>
                         </template>
@@ -190,7 +190,6 @@
     <script>
         var app = Vue.createApp({
             setup () {
-                Quasar.lang.set(Quasar.lang.fr)
                 Quasar.Dark.set('auto')
 
                 const shWorkers = Vue.ref([])
