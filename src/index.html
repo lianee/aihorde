@@ -277,11 +277,11 @@
                             if (w.type == "image" && !prefs.value.typeImage) result = false
                             if (w.type == "text" && !prefs.value.typeText) result = false
                             if (w.type == "interrogation" && !prefs.value.typeInterrogation) result = false
-                            if (prefs.value.trusted != undefined && prefs.value.trusted != w.trusted) result = false
-                            if (prefs.value.maintenance != undefined && prefs.value.maintenance != w.maintenance_mode) result = false
-                            if (prefs.value.img2img != undefined && prefs.value.img2img != w.img2img) result = false
-                            if (prefs.value.painting != undefined && prefs.value.painting != w.painting) result = false
-                            if (prefs.value.lora != undefined && prefs.value.lora != w.lora) result = false
+                            if (prefs.value.trusted !== null && prefs.value.trusted != w.trusted) result = false
+                            if (prefs.value.maintenance !== null && prefs.value.maintenance != w.maintenance_mode) result = false
+                            if (prefs.value.img2img !== null && prefs.value.img2img != w.img2img) result = false
+                            if (prefs.value.painting !== null && prefs.value.painting != w.painting) result = false
+                            if (prefs.value.lora !== null && prefs.value.lora != w.lora) result = false
                             return result
                         }).map((w) => {
                             if (prefs.value.filter && w.name.toLowerCase().indexOf(prefs.value.filter.toLowerCase()) != -1) {
