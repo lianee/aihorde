@@ -1,2 +1,3 @@
 # stablehorde-query
-Currently active workers found at the [Stable Horde](https://stablehorde.net/) project.
+
+Currently active workers found at the [AI Horde](https://aihorde.net/) project.
