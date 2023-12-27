@@ -321,6 +321,7 @@
                     }
                 }
 
+                const checkCount = Vue.ref(3)
                 const wUpdateData = async () => {
                     let details = shWorkers.value
                         .filter((w) => {
@@ -341,14 +342,21 @@
                         let online = checkOnline(w)
                         if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
                         if (watchedStatus.value[w] != online) changed[w] = online
-                        watchedStatus.value[w] = online
                     })
                     if (Object.keys(changed).length) {
-                        let message = Object.entries(changed).map(([k, v]) => {
-                            return 'Worker ' + k + ' is ' + (v ? 'online' : 'offline')
-                        }).join("\n")
-                        console.log(message)
-                        sendMail(message)
+                        checkCount.value -= 1
+                        console.log('change detected', changed, 'count', checkCount.value)
+                        if (checkCount.value < 1) {
+                            let message = Object.entries(changed).map(([k, v]) => {
+                                watchedStatus.value[k] = v
+                                return 'Worker ' + k + ' is ' + (v ? 'online' : 'offline')
+                            }).join("\n")
+                            console.log(message)
+                            sendMail(message)
+                            checkCount.value = 3
+                        }
+                    } else {
+                        checkCount.value = 3
                     }
                 }
 
