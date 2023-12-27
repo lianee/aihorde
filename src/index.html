@@ -227,7 +227,7 @@
                             </q-table>
                         </q-tab-panel>
                         <q-tab-panel name="alerts">
-                            <p>Receive an email whenever a worker change status, online or offline.<br />All data is stored only in your browser, you can run this tool locally without web server</p>
+                            <p>Receive an email and/or a notification whenever a worker change status (online or offline).<br />All data is stored only in your browser, you can run this tool locally without web server</p>
                             <div class="q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key</div>
                             <q-input v-model="prefs.apiKey" type="password" label="API key"></q-input>
                             <div class="q-mt-md">Destination</div>
@@ -321,6 +321,11 @@
                     }
                 }
 
+                // Notifications require https
+                if (location.protocol == 'https:' && Notification.permission == "default") {
+                    Notification.requestPermission()
+                }
+
                 const checkCount = Vue.ref(3)
                 const wUpdateData = async () => {
                     let details = shWorkers.value
@@ -353,6 +358,11 @@
                             }).join("\n")
                             console.log(message)
                             sendMail(message)
+                            if (Notification.permission == "granted") {
+                                const notification = new Notification("AI Horde worker alert", {
+                                    body: message,
+                                })
+                            }
                             checkCount.value = 3
                         }
                     } else {
