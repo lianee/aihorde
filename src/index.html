@@ -433,110 +433,120 @@
                         nbrFiltered.value = nbr
                     },
                     convertTime,
-                    wFields: [
-                        {
-                            name: "index",
-                            label: "",
-                            align: "right",
-                        },
-                        {
-                            name: "type",
-                            field: "type",
-                            label: "",
-                            classes: 'tdIcon'
-                        },
-                        {
-                            name: "name",
-                            label: "Name",
-                            field: "name",
-                            align: "left",
-                            sortable: true
-                        },
-                        {
-                            name: "bridge_agent",
-                            label: "Worker",
-                            field: "bridge_agent",
-                            align: "center",
-                            classes: (row) => 'tdIcon ' + (row.maintenance_mode ? "text-negative" : "text-positive")
-                        },
-                        {
-                            name: "trusted",
-                            field: "trusted",
-                            label: "Trusted",
-                            sortable: true,
-                            align: "center",
-                            classes: (row) => 'tdIcon ' + (row.trusted ? "text-positive" : "text-warning"),
-                        },
-                        {
-                            name: "img2img",
-                            label: "img2img",
-                            field: "img2img",
-                            sortable: true,
-                            align: "center",
-                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.img2img ? "text-positive" : "text-warning") : ''
-                        },
-                        {
-                            name: "painting",
-                            label: "painting",
-                            field: "painting",
-                            sortable: true,
-                            align: "center",
-                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.painting ? "text-positive" : "text-warning") : ''
-                        },
-                        {
-                            name: "lora",
-                            label: "lora",
-                            field: "lora",
-                            sortable: true,
-                            align: "center",
-                            classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.lora ? "text-positive" : "text-warning") : ''
-                        },
-                        {
-                            name: "max_pixels",
-                            label: "Size",
-                            field: "max_pixels",
-                            align: "right",
-                            sortable: true,
-                        },
-                        {
-                            name: "threads",
-                            label: "Threads",
-                            field: "threads",
-                            align: "right",
-                            sortable: true,
-                        },
-                        {
-                            name: "models",
-                            label: "Models",
-                            field: row => { if (row.models) return row.models.length },
-                            align: "right",
-                            sortable: true,
-                        },
-                        {
-                            name: "uptime",
-                            label: "Uptime",
-                            field: "uptime",
-                            align: "right",
-                            class: "text-nowrap",
-                            sortable: true,
-                        },
-                        {
-                            name: "kudos_rewards",
-                            label: "Kudos",
-                            field: "kudos_rewards",
-                            align: "right",
-                            class: "text-nowrap",
-                            sortable: true,
-                        },
-                        {
-                            name: "k/h",
-                            label: "k/h",
-                            align: "right",
-                            field: row => Math.round(row.kudos_rewards / (row.uptime / 3600)),
-                            sortable: true,
-                            sortByFormatted: true,
-                        },
-                    ],
+                    wFields: Vue.computed(() => {
+                        let fields = [
+                            {
+                                name: "index",
+                                label: "",
+                                align: "right",
+                            },
+                            {
+                                name: "type",
+                                field: "type",
+                                label: "",
+                                classes: 'tdIcon'
+                            },
+                            {
+                                name: "name",
+                                label: "Name",
+                                field: "name",
+                                align: "left",
+                                sortable: true
+                            },
+                            {
+                                name: "bridge_agent",
+                                label: "Worker",
+                                field: "bridge_agent",
+                                align: "center",
+                                classes: (row) => 'tdIcon ' + (row.maintenance_mode ? "text-negative" : "text-positive")
+                            },
+                            {
+                                name: "trusted",
+                                field: "trusted",
+                                label: "Trusted",
+                                sortable: true,
+                                align: "center",
+                                classes: (row) => 'tdIcon ' + (row.trusted ? "text-positive" : "text-warning"),
+                            },
+                        ]
+                        if (prefs.value.typeImage) {
+                            fields = fields.concat([
+                                {
+                                    name: "img2img",
+                                    label: "img2img",
+                                    field: "img2img",
+                                    sortable: true,
+                                    align: "center",
+                                    classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.img2img ? "text-positive" : "text-warning") : ''
+                                },
+                                {
+                                    name: "painting",
+                                    label: "painting",
+                                    field: "painting",
+                                    sortable: true,
+                                    align: "center",
+                                    classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.painting ? "text-positive" : "text-warning") : ''
+                                },
+                                {
+                                    name: "lora",
+                                    label: "lora",
+                                    field: "lora",
+                                    sortable: true,
+                                    align: "center",
+                                    classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.lora ? "text-positive" : "text-warning") : ''
+                                },
+                                {
+                                    name: "max_pixels",
+                                    label: "Size",
+                                    field: "max_pixels",
+                                    align: "right",
+                                    sortable: true,
+                                },
+                            ])
+                        }
+                        fields = fields.concat([
+                            {
+                                name: "threads",
+                                label: "Threads",
+                                field: "threads",
+                                align: "right",
+                                sortable: true,
+                            },
+                            {
+                                name: "models",
+                                label: "Models",
+                                field: row => { if (row.models) return row.models.length },
+                                align: "right",
+                                sortable: true,
+                            },
+                            {
+                                name: "uptime",
+                                label: "Uptime",
+                                field: "uptime",
+                                align: "right",
+                                class: "text-nowrap",
+                                sortable: true,
+                            },
+                            {
+                                name: "kudos_rewards",
+                                label: "Kudos",
+                                field: "kudos_rewards",
+                                align: "right",
+                                class: "text-nowrap",
+                                sortable: true,
+                            },
+                            {
+                                name: "k/h",
+                                label: "k/h",
+                                align: "right",
+                                field: row => Math.round(row.kudos_rewards / (row.uptime / 3600)),
+                                sortable: true,
+                                sortByFormatted: true,
+                            },
+                        ])
+
+                        return fields
+                    }),
                     wRowClicked (row) {
                         row._showDetails = !row._showDetails
                     },
