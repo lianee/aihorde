@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>AI Horde - Workers</title>
+    <title>AI Horde - Utils</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="darkreader-lock">
@@ -45,7 +45,7 @@
             background-color: var(--q-warning);
         }
 
-        .q-table tbody td.tdIcon {
+        .q-table tbody .tdIcon {
             font-size: 1.5em;
         }
 
@@ -94,10 +94,7 @@
             box-shadow: 0 0 10px 2px #0003, 0 0px 10px #0000003d;
         }
 
-        body.body--dark .shadow-2 {
-            box-shadow: 0 1px 5px hsla(0, 0%, 0%, .2), 0 2px 2px hsla(0, 0%, 0%, .14), 0 3px 1px -2px hsla(0, 0%, 0%, .12);
-        }
-
+        body.body--dark .shadow-2,
         .q-table--dark,
         .q-table__card--dark {
             box-shadow: 0 1px 5px hsla(0, 0%, 0%, .2), 0 2px 2px hsla(0, 0%, 0%, .14), 0 3px 1px -2px hsla(0, 0%, 0%, .12);
@@ -113,6 +110,7 @@
 <body>
     <div id="q-app">
         <q-layout view="hHh lpR fFf" v-cloak>
+
             <q-header reveal elevated>
                 <q-toolbar>
                     <q-toolbar-title :shrink="true">
@@ -130,6 +128,7 @@
             <q-page-container>
                 <q-page padding>
                     <q-tab-panels v-model="tab" animated class="shadow-2 rounded-borders">
+
                         <q-tab-panel name="workers">
                             <p>
                                 Currently active workers found at the <a href="https://aihorde.net/" target="_blank">AI Horde</a> project. Updates every minute. <a href="https://github.com/lianee/aihorde" target="github"><svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">
@@ -162,16 +161,17 @@
                                             {{ props.rowIndex + 1 }}
                                         </q-td>
                                         <q-td key="type" :props="props">
-                                            <span v-if="props.row.type=='image'" class="material-icons-outlined" title="Dreamer">image</span>
+                                            <span v-if="props.row.type=='image'" class="material-icons-outlined" :title="'Dreamer ' + (props.row.nsfw ? 'NSFW' : '')">image</span>
                                             <span v-else-if="props.row.type=='text'" class="material-icons-outlined" title="Scribe">chat</span>
                                             <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined" title="Alchemist">image_search</span>
                                         </q-td>
                                         <q-td key="name" :props="props">
-                                            {{ props.row.name }}
+                                            <span v-if="isWatched(props.row)" class="material-icons-outlined tdIcon text-warning" :title="'regen'">notifications</span> {{ props.row.name }}
                                         </q-td>
                                         <q-td key="bridge_agent" :props="props">
-                                            <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined" :title="'regen' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
-                                            <span v-else class="material-icons-outlined" :title="'legacy' + (props.row.maintenance_mode ? ', maintenance mode' : '')">verified</span>
+                                            <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
+                                            <span v-else class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ', maintenance mode' : '')">verified</span>
+                                            v{{ props.row.bridge_agent.split(':')[1] }}
                                         </q-td>
                                         <q-td key="trusted" :props="props">
                                             <span v-if="props.row.trusted" class="material-icons-outlined">done</span>
@@ -214,7 +214,7 @@
                                             {{ new Intl.NumberFormat().format(props.row.kudos_rewards) }}
                                         </q-td>
                                         <q-td key="k/h" :props="props">
-                                            {{ new Intl.NumberFormat().format(Math.round(props.row.kudos_rewards / (props.row.uptime / 3600))) }}
+                                            {{ new Intl.NumberFormat().format(Math.round((props.row.kudos_details.generated + props.row.kudos_details.uptime) / (props.row.uptime / 3600))) }}
                                         </q-td>
                                     </q-tr>
                                     <q-tr v-show="props.row._showDetails" :props="props" class="details">
@@ -227,6 +227,7 @@
                                 </template>
                             </q-table>
                         </q-tab-panel>
+
                         <q-tab-panel name="models">
                             <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="shModels" row-key="name" :pagination="prefs.mPagination" @update:pagination="mUpdatePagination" :filter="prefs.mFilter">
                                 <template v-slot:top-right>
@@ -240,11 +241,14 @@
                                     <q-tr :props="props" @click="mRowClicked(props.row)" :class="'search_' + props.row._search">
                                         <q-td key="type" :props="props">
                                             <span v-if="props.row.type=='text'" class="material-icons-outlined" title="text">chat</span>
-                                            <span v-else-if="props.row.more && props.row.more.showcases" class="material-icons-outlined" title="image">image_search</span>
+                                            <span v-else-if="props.row.showcases" class="material-icons-outlined" title="image">image_search</span>
                                             <span v-else class="material-icons-outlined" title="image">image</span>
                                         </q-td>
-                                        <q-td key="name" :props="props" :title="props.row.more ? props.row.more.description : ''">
+                                        <q-td key="name" :props="props" :title="props.row.description">
                                             {{ props.row.name }}
+                                        </q-td>
+                                        <q-td key="version" :props="props">
+                                            {{ props.row.version }}
                                         </q-td>
                                         <q-td key="jobs" :props="props">
                                             {{ props.row.jobs }}
@@ -261,9 +265,12 @@
                                     </q-tr>
                                     <q-tr v-show="props.row._showDetails" :props="props" class="details">
                                         <q-td colspan="100%">
-                                            <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/LlcCf5Y4z/models-image?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                                            <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/a462fc45-bf98-42db-a2a6-2d93b58eda06/models-text?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                                            <div v-if="props.row.more && props.row.more.showcases" v-for="(src, idx) in props.row.more.showcases" :key="idx">
+                                            <div class="q-pb-md q-gutter-sm">
+                                                <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/LlcCf5Y4z/models-image?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                                                <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/a462fc45-bf98-42db-a2a6-2d93b58eda06/models-text?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                                                <q-btn v-if="props.row.homepage" :href="props.row.homepage" target="homepage" icon="home">Home page</q-btn>
+                                            </div>
+                                            <div v-if="props.row.showcases" v-for="(src, idx) in props.row.showcases" :key="idx">
                                                 <q-img :src="src"></q-img>
                                             </div>
                                             <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
@@ -272,14 +279,19 @@
                                 </template>
                             </q-table>
                         </q-tab-panel>
+
                         <q-tab-panel name="alerts">
-                            <p>Receive an email and/or a notification whenever a worker change status (online or offline).<br />All data is stored only in your browser, you can run this tool locally without web server</p>
-                            <div class="q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key</div>
+                            <p>All data is stored only in your browser, you can run this tool locally without web server</p>
+                            <p>Receive an email and/or a notification whenever a worker change status (online or offline).</p>
+                            <div class=" q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key
+                            </div>
                             <q-input v-model="prefs.apiKey" type="password" label="API key"></q-input>
                             <div class="q-mt-md">Destination</div>
                             <q-input v-model="prefs.email" type="email" label="Email" :rules="[value => testPattern.email(value) || 'incorrect email']" hint="Sender and recipent of the alert, must be a 'verified sender'"></q-input>
                             <div class="q-mt-md"><q-btn v-on:click="testEmail" :loading="sendingMail" :disabled="sendingMail || !(prefs.apiKey && prefs.email)">Send test email</q-btn></div>
-                            <div class="q-mt-md"><q-btn icon="add" v-on:click="addWatched"></q-btn> Workers to watch (exact name only)</div>
+                            <p>If you input your API key, your workers will be watched</p>
+                            <q-input v-model="prefs.aihordeKey" type="password" label="AI Horde API key" :hint="prefs.aihordeKey && shUser.username ? shUser.username+', '+new Intl.NumberFormat().format(shUser.kudos)+' kudos' : ''"></q-input>
+                            <div class="q-mt-md"><q-btn icon="add" v-on:click="addWatched"></q-btn> Additional workers to watch (exact name only)</div>
                             <div v-for="(w, idx) in prefs.watched" :key="idx">
                                 <q-input v-model.trim="prefs.watched[idx]" :rules="[value => checkOnline(value) || 'Offline or unknown']" debounce="500">
                                     <template v-slot:append>
@@ -288,6 +300,7 @@
                                 </q-input>
                             </div>
                         </q-tab-panel>
+
                     </q-tab-panels>
                 </q-page>
             </q-page-container>
@@ -305,6 +318,7 @@
                 const tab = Vue.ref('workers')
                 const shWorkers = Vue.ref([])
                 const shModels = Vue.ref([])
+                const shUser = Vue.ref({})
                 const prefs = Vue.ref({
                     // workers
                     trusted: null,
@@ -331,8 +345,11 @@
                     // alarm settings
                     watched: [],
                     apiKey: null,
-                    email: null
+                    email: null,
+                    // ai horde
+                    aihordeKey: '',
                 })
+                const userWorkers = Vue.ref({})
                 const watchedStatus = Vue.ref({})
 
                 const LOCAL_STORAGE_KEY = "aihorde:prefs"
@@ -355,6 +372,17 @@
                     return shWorkers.value.findIndex(w => {
                         return w.name == name
                     }) != -1
+                }
+
+                const isOwned = (id) => {
+                    if (shUser.value.username) {
+                        return shUser.value.worker_ids.findIndex(wid => wid == id) != -1
+                    }
+                }
+
+                const isWatched = w => {
+                    if (isOwned(w.id)) return true
+                    return prefs.value.watched.findIndex(name => name == w.name) != -1
                 }
 
                 const sendingMail = Vue.ref(false)
@@ -406,7 +434,7 @@
                         fetchAPI("https://aihorde.net/api/v2/workers"),
                         fetchAPI("https://aihorde.net/api/v2/status/models?type=image"),
                         fetchAPI("https://aihorde.net/api/v2/status/models?type=text"),
-                        fetchAPI("https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/stable_diffusion.json")
+                        fetchAPI("https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/stable_diffusion.json"),
                     ])
                     const workers = responses[0]
                     const wModels = {}
@@ -435,15 +463,50 @@
                             return a.localeCompare(b)
                         })
                         if (responses[3][m.name]) {
-                            m.more = responses[3][m.name]
+                            Object.assign(m, responses[3][m.name])
                         }
                         return m
                     })
+
+                    if (prefs.value.aihordeKey) {
+                        try {
+                            let response = await fetch('https://aihorde.net/api/v2/find_user', {
+                                headers: {
+                                    Apikey: prefs.value.aihordeKey,
+                                },
+                            })
+                            shUser.value = await response.json()
+
+                            // map id => name
+                            shUser.value.worker_ids.forEach(id => {
+                                if (!userWorkers.value[id]) {
+                                    let w = shWorkers.value.find(w => w.id == id)
+                                    if (w) {
+                                        if (userWorkers.value[id] === '') {
+                                            // just appeared
+                                            watchedStatus.value[w.name] = false
+                                        }
+                                        userWorkers.value[id] = w.name
+                                    } else {
+                                        userWorkers.value[id] = ''
+                                    }
+                                }
+                            })
+                        } catch (error) { console.log(error) }
+                    }
+
                     const changed = {}
                     prefs.value.watched.forEach(w => {
                         let online = checkOnline(w)
                         if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
                         if (watchedStatus.value[w] != online) changed[w] = online
+                    })
+                    Object.values(userWorkers.value).forEach(w => {
+                        if (w) {
+                            let online = checkOnline(w)
+                            if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
+                            if (watchedStatus.value[w] != online) changed[w] = online
+                        }
                     })
                     if (Object.keys(changed).length) {
                         checkCount.value -= 1
@@ -465,6 +528,7 @@
                     } else {
                         checkCount.value = 3
                     }
+
                 }
 
                 wUpdateData()
@@ -493,6 +557,7 @@
                     tab,
                     shWorkers,
                     shModels,
+                    shUser,
                     wCount: Vue.computed(() => {
                         return shWorkers.value.reduce((acc, val) => {
                             if (!acc[val.type]) acc[val.type] = 1
@@ -538,14 +603,20 @@
                             name: "type",
                             field: "type",
                             label: "",
-                            classes: (row) => 'tdIcon ' + (row.more ? (row.more.nsfw ? "text-warning" : "text-positive") : '')
+                            classes: (row) => 'tdIcon ' + (row.nsfw !== undefined ? (row.nsfw ? "text-warning" : "text-positive") : '')
                         },
                         {
                             name: "name",
                             label: "Name",
                             field: "name",
                             align: "left",
-                            sortable: true
+                            sortable: true,
+                        },
+                        {
+                            name: "version",
+                            label: "Version",
+                            field: "version",
+                            align: "right",
                         },
                         { // The job count waiting to be generated by this model.
                             name: "jobs",
@@ -594,14 +665,15 @@
                                 label: "Name",
                                 field: "name",
                                 align: "left",
-                                sortable: true
+                                sortable: true,
+                                classes: row => isOwned(row.id) ? 'text-primary' : ''
                             },
                             {
                                 name: "bridge_agent",
                                 label: "Worker",
                                 field: "bridge_agent",
-                                align: "center",
-                                classes: (row) => 'tdIcon ' + (row.maintenance_mode ? "text-negative" : "text-positive")
+                                align: "left",
+                                classes: (row) => row.maintenance_mode ? "text-negative" : "text-positive"
                             },
                             {
                                 name: "trusted",
@@ -682,7 +754,7 @@
                                 name: "k/h",
                                 label: "k/h",
                                 align: "right",
-                                field: row => Math.round(row.kudos_rewards / (row.uptime / 3600)),
+                                field: row => Math.round((row.kudos_details.generated + row.kudos_details.uptime) / (row.uptime / 3600)),
                                 sortable: true,
                                 sortByFormatted: true,
                             },
@@ -712,7 +784,8 @@
                     sendingMail,
                     testEmail () {
                         sendMail("This is a test email")
-                    }
+                    },
+                    isWatched,
                 }
             }
         })
