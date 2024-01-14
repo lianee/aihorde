@@ -116,7 +116,7 @@
                     <q-toolbar-title :shrink="true">
                         <div class="logo"></div>
                     </q-toolbar-title>
-                    <div class="col text-h4 text-center">AI Horde</div>
+                    <div class="col text-h4 text-center">AI Horde utils</div>
                 </q-toolbar>
                 <q-tabs align="left" v-model="tab">
                     <q-tab name="workers" label="Workers"></q-tab>
@@ -229,7 +229,11 @@
                         </q-tab-panel>
 
                         <q-tab-panel name="models">
-                            <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="shModels" row-key="name" :pagination="prefs.mPagination" @update:pagination="mUpdatePagination" :filter="prefs.mFilter">
+                            <div>
+                                <q-checkbox inline="" v-model="prefs.modelImage">Image ({{ mCount.ckpt }})</q-checkbox>
+                                <q-checkbox inline="" v-model="prefs.modelText">Text ({{ mCount.text }})</q-checkbox>
+                            </div>
+                            <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="mDisplay" row-key="name" :pagination="prefs.mPagination" @update:pagination="mUpdatePagination" :filter="prefs.mFilter" :filter-method="mFilter">
                                 <template v-slot:top-right>
                                     <q-input borderless dense debounce="300" v-model="prefs.mFilter" placeholder="Filter">
                                         <template v-slot:append>
@@ -240,9 +244,9 @@
                                 <template v-slot:body="props">
                                     <q-tr :props="props" @click="mRowClicked(props.row)" :class="'search_' + props.row._search">
                                         <q-td key="type" :props="props">
-                                            <span v-if="props.row.type=='text'" class="material-icons-outlined" title="text">chat</span>
-                                            <span v-else-if="props.row.showcases" class="material-icons-outlined" title="image">image_search</span>
-                                            <span v-else class="material-icons-outlined" title="image">image</span>
+                                            <span v-if="props.row.type=='text'" class="material-icons-outlined" :title="mTitle(props.row)">chat</span>
+                                            <span v-else-if="props.row.showcases" class="material-icons-outlined" :title="mTitle(props.row)">image_search</span>
+                                            <span v-else class="material-icons-outlined" :title="mTitle(props.row)">image</span>
                                         </q-td>
                                         <q-td key="name" :props="props" :title="props.row.description">
                                             {{ props.row.name }}
@@ -336,6 +340,8 @@
                         rowsPerPage: 0
                     },
                     // models
+                    modelImage: true,
+                    modelText: true,
                     mFilter: "",
                     mPagination: {
                         sortBy: "name",
@@ -359,6 +365,8 @@
                     if (x) {
                         if (!Array.isArray(x.watched)) x.watched = []
                         if (!x.wPagination) x.wPagination = { rowsPerPage: 0 }
+                        if (x.modelImage === undefined) x.modelImage = true
+                        if (x.modelText === undefined) x.modelText = true
                         prefs.value = x
                     }
                 }
@@ -552,6 +560,14 @@
                     }
                 }
 
+                const uCount = data => {
+                    return data.value.reduce((acc, val) => {
+                        if (!acc[val.type]) acc[val.type] = 1
+                        else acc[val.type]++
+                        return acc
+                    }, {})
+                }
+
                 return {
                     testPattern: Quasar.patterns.testPattern,
                     tab,
@@ -559,12 +575,11 @@
                     shModels,
                     shUser,
                     wCount: Vue.computed(() => {
-                        return shWorkers.value.reduce((acc, val) => {
-                            if (!acc[val.type]) acc[val.type] = 1
-                            else acc[val.type]++
-                            return acc
-                        }, {})
+                        return uCount(shWorkers)
                     }),
+                    mCount: Vue.computed(() => {
+                        return uCount(shModels)
+                    }, {}),
                     wDisplay: Vue.computed(() => {
                         return shWorkers.value.filter(w => {
                             let result = true
@@ -592,18 +607,36 @@
                             return w
                         })
                     }),
+                    mDisplay: Vue.computed(() => {
+                        return shModels.value.filter(w => {
+                            let result = true
+                            if (w.type == "text" && !prefs.value.modelText) result = false
+                            if (w.type == "ckpt" && !prefs.value.modelImage) result = false
+                            return result
+                        })
+                    }),
                     prefs,
                     nbrFiltered,
                     onFiltered (filteredItems, nbr) {
                         nbrFiltered.value = nbr
                     },
                     convertTime,
+                    mTitle (row) {
+                        if (row.type == 'text') {
+                            return 'text'
+                        } else {
+                            let type = 'image'
+                            if (row.nsfw) type += ' nsfw'
+                            if (row.showcases) type += ' showcases'
+                            return type
+                        }
+                    },
                     mFields: [
                         {
                             name: "type",
                             field: "type",
                             label: "",
-                            classes: (row) => 'tdIcon ' + (row.nsfw !== undefined ? (row.nsfw ? "text-warning" : "text-positive") : '')
+                            classes: (row) => 'tdIcon ' + (row.nsfw !== undefined ? (row.nsfw ? "text-warning" : "text-positive") : ''),
                         },
                         {
                             name: "name",
@@ -647,6 +680,16 @@
                             sortable: true
                         },
                     ],
+                    mFilter: (rows, terms, cols, cellValue) => {
+                        const lowerTerms = terms ? terms.toLowerCase() : ''
+                        return rows.filter(
+                            row => ['name', 'description'].some(col => {
+                                const val = row[col] + ''
+                                const haystack = (val === 'undefined' || val === 'null') ? '' : val.toLowerCase()
+                                return haystack.indexOf(lowerTerms) !== -1
+                            })
+                        )
+                    },
                     wFields: Vue.computed(() => {
                         let fields = [
                             {
