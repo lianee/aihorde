@@ -104,6 +104,25 @@
             border-color: #00000047;
             box-shadow: 0 1px 5px #0003, 0 2px 2px #00000024, 0 3px 1px -2px #0000001f;
         }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity .5s ease;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        .fade-enter-to,
+        .fade-leave-from {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -118,30 +137,22 @@
                     </q-toolbar-title>
                     <div class="col text-h4 text-center">AI Horde utils</div>
                 </q-toolbar>
-                <q-tabs align="left" v-model="tab">
-                    <q-tab name="workers" label="Workers"></q-tab>
-                    <q-tab name="models" label="Models"></q-tab>
-                    <q-tab name="alerts" label="Alerts"></q-tab>
+                <q-tabs align="left">
+                    <q-route-tab to="workers" label="Workers"></q-route-tab>
+                    <q-route-tab to="models" label="Models"></q-route-tab>
+                    <q-route-tab to="alerts" label="Alerts"></q-route-tab>
                 </q-tabs>
             </q-header>
 
             <q-page-container>
                 <q-page padding>
-                    <q-tab-panels v-model="tab" animated class="shadow-2 rounded-borders">
-
-                        <q-tab-panel name="workers">
-                            <ai-workers v-model:prefs="prefs" :items="shWorkers" :user="shUser"></ai-workers>
-                        </q-tab-panel>
-
-                        <q-tab-panel name="models">
-                            <ai-models v-model:prefs="prefs" :items="shModels"></ai-models>
-                        </q-tab-panel>
-
-                        <q-tab-panel name="alerts">
-                            <ai-alerts v-model:prefs="prefs" :user="shUser" @sendMail="sendMail"></ai-alerts>
-                        </q-tab-panel>
-
-                    </q-tab-panels>
+                    <div class="relative-position">
+                        <router-view v-slot="{ Component }">
+                            <transition name="fade">
+                                <component :is="Component" />
+                            </transition>
+                        </router-view>
+                    </div>
                 </q-page>
             </q-page-container>
         </q-layout>
@@ -150,118 +161,120 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/quasar@2/dist/quasar.umd.prod.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/quasar@2/dist/lang/fr.umd.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-router@4/dist/vue-router.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-demi@0/lib/index.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pinia@2/dist/pinia.iife.min.js"></script>
     <script>
+        const { createApp, ref, computed } = Vue;
+
         const aiWorkers = {
             name: 'workers',
-            template: /*html*/`
-    <p>
-        Currently active workers found at the <a href="https://aihorde.net/" target="_blank">AI Horde</a> project. Updates every minute. <a href="https://github.com/lianee/aihorde" target="github"><svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58.0.0 3.67055.0 8.20235.0 11.8319 2.29 14.8975 5.47 15.9843 5.87 16.0561 6.02 15.81 6.02 15.5947 6.02 15.3999 6.01 14.754 6.01 14.067 4 14.4464 3.48 13.5646 3.32 13.1033 3.23 12.8674 2.84 12.1395 2.5 11.9447 2.22 11.7909 1.82 11.4115 2.49 11.4013 3.12 11.391 3.57 11.9959 3.72 12.242 4.44 13.4826 5.59 13.134 6.05 12.9187 6.12 12.3855 6.33 12.0267 6.56 11.8216c-1.78-.205-3.64-.9125-3.64-4.04987.0-.89201.31-1.63022.82-2.20438C3.66 5.36229 3.38 4.52155 3.82 3.39372c0 0 .67-.21531 2.2.84074C6.66 4.04991 7.34 3.95763 8.02 3.95763S9.38 4.04991 10.02 4.23446c1.53-1.0663 2.2-.84074 2.2-.84074C12.66 4.52155 12.38 5.36229 12.3 5.56735 12.81 6.14151 13.12 6.86947 13.12 7.77173c0 3.14767-1.87 3.84487-3.65 4.04987C9.76 12.078 10.01 12.5701 10.01 13.3391 10.01 14.4361 10 15.3179 10 15.5947 10 15.81 10.15 16.0664 10.55 15.9843 13.71 14.8975 16 11.8216 16 8.20235 16 3.67055 12.42.0 8 0z" fill="#000"></path>
-            </svg> Github</a>
-    </p>
-    <div>
-        <q-checkbox v-model="prefs.trusted" inline="" toggle-indeterminate="">Trusted</q-checkbox>
-        <q-checkbox v-model="prefs.maintenance" inline="" toggle-indeterminate="">Maintenance</q-checkbox>
-        <q-checkbox v-model="prefs.img2img" inline="" toggle-indeterminate="">img2img</q-checkbox>
-        <q-checkbox v-model="prefs.painting" inline="" toggle-indeterminate="">painting</q-checkbox>
-        <q-checkbox v-model="prefs.lora" inline="" toggle-indeterminate="">lora</q-checkbox>
-    </div>
-    <div>
-        <q-checkbox inline="" v-model="prefs.typeImage">Dreamer ({{ wCount.image }})</q-checkbox>
-        <q-checkbox inline="" v-model="prefs.typeText">Scribe ({{ wCount.text }})</q-checkbox>
-        <q-checkbox inline="" v-model="prefs.typeInterrogation">Alchemist ({{ wCount.interrogation }})</q-checkbox>
-    </div>
-    <q-table :dense="$q.screen.lt.md" :columns="wFields" :rows="wDisplay" row-key="id" hide-bottom :pagination="prefs.wPagination" @update:pagination="wUpdatePagination">
-        <template v-slot:top-right>
-            <q-input borderless dense debounce="300" v-model="prefs.wFilter" placeholder="Search">
-                <template v-slot:append>
-                    <q-icon name="search" />
-                </template>
-            </q-input>
-        </template>
-        <template v-slot:body="props">
-            <q-tr :props="props" @click="wRowClicked(props.row)" :class="'search_' + props.row._search">
-                <q-td key="index" :props="props">
-                    {{ props.rowIndex + 1 }}
-                </q-td>
-                <q-td key="type" :props="props">
-                    <span v-if="props.row.type=='image'" class="material-icons-outlined" :title="'Dreamer ' + (props.row.nsfw ? 'NSFW' : '')">image</span>
-                    <span v-else-if="props.row.type=='text'" class="material-icons-outlined" title="Scribe">chat</span>
-                    <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined" title="Alchemist">image_search</span>
-                </q-td>
-                <q-td key="name" :props="props">
-                    <span v-if="isWatched(props.row)" class="material-icons-outlined tdIcon text-warning" :title="'regen'">notifications</span> {{ props.row.name }}
-                </q-td>
-                <q-td key="bridge_agent" :props="props">
-                    <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
-                    <span v-else class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ', maintenance mode' : '')">verified</span>
-                    v{{ props.row.bridge_agent.split(':')[1] }}
-                </q-td>
-                <q-td key="trusted" :props="props">
-                    <span v-if="props.row.trusted" class="material-icons-outlined">done</span>
-                    <span v-else class="material-icons-outlined">close</span>
-                </q-td>
-                <q-td key="img2img" :props="props">
-                    <span v-if="props.row.type!='image'">-</span>
-                    <span v-else-if="props.row.img2img" class="material-icons-outlined">done</span>
-                    <span v-else class="material-icons-outlined">close</span>
-                </q-td>
-                <q-td key="painting" :props="props">
-                    <span v-if="props.row.type!='image'">-</span>
-                    <span v-else-if="props.row.painting" class="material-icons-outlined">done</span>
-                    <span v-else class="material-icons-outlined">close</span>
-                </q-td>
-                <q-td key="lora" :props="props">
-                    <span v-if="props.row.type!='image'">-</span>
-                    <span v-else-if="props.row.lora" class="material-icons-outlined">done</span>
-                    <span v-else class="material-icons-outlined">close</span>
-                </q-td>
-                <q-td key="max_pixels" :props="props">
-                    <span v-if="props.row.type!='image'">-</span>
-                    <span v-else>{{ Math.round(props.row.max_pixels / 32768) }}</span>
-                </q-td>
-                <q-td key="threads" :props="props">
-                    <span>{{ props.row.threads }}</span>
-                </q-td>
-                <q-td key="models" :props="props">
-                    <span v-if="props.row.type=='interrogation'">-</span>
-                    <span v-else-if="props.row.type=='image'">{{ props.row.models.length}}</span>
-                    <div class="model-aphrodite text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('aphrodite')==0" :title="props.row.models[0]"></div>
-                    <div class="model-kobold text-center" v-else-if="props.row.type=='text' && (props.row.models[0].toLowerCase().indexOf('kobold')==0 || props.row.models[0].toLowerCase().indexOf('henk717')==0)" :title="props.row.models[0]"></div>
-                    <div class="model-pygmalion text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('pygmalion')==0" :title="props.row.models[0]"></div>
-                    <div v-else-if="props.row.type=='text'" class="text-center"><span class="material-icons-outlined text2x" :title="props.row.models[0]">help</span></div>
-                </q-td>
-                <q-td key="uptime" :props="props">
-                    {{ convertTime(props.row.uptime) }}
-                </q-td>
-                <q-td key="kudos_rewards" :props="props">
-                    {{ new Intl.NumberFormat().format(props.row.kudos_rewards) }}
-                </q-td>
-                <q-td key="k/h" :props="props">
-                    {{ new Intl.NumberFormat().format(Math.round((props.row.kudos_details.generated + props.row.kudos_details.uptime) / (props.row.uptime / 3600))) }}
-                </q-td>
-            </q-tr>
-            <q-tr v-show="props.row._showDetails" :props="props" class="details">
-                <q-td colspan="100%">
-                    <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/XSx96LYVk/workers-image?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                    <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/f60735cb-12bd-4759-b77f-d1fdf53cf0e7/workers-text?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                    <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
-                </q-td>
-            </q-tr>
-        </template>
-    </q-table>
-            `,
-            props: {
-                prefs: Object,
-                items: Array,
-                user: Object,
-            },
-            emits: ['update:prefs'],
-            setup (props, { emit }) {
+            template: /*html*/`<q-card class="shadow-2 rounded-borders">
+    <q-card-section>
+        <p>
+            Currently active workers found at the <a href="https://aihorde.net/" target="_blank">AI Horde</a> project. Updates every minute. <a href="https://github.com/lianee/aihorde" target="github"><svg class="icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M8 0C3.58.0.0 3.67055.0 8.20235.0 11.8319 2.29 14.8975 5.47 15.9843 5.87 16.0561 6.02 15.81 6.02 15.5947 6.02 15.3999 6.01 14.754 6.01 14.067 4 14.4464 3.48 13.5646 3.32 13.1033 3.23 12.8674 2.84 12.1395 2.5 11.9447 2.22 11.7909 1.82 11.4115 2.49 11.4013 3.12 11.391 3.57 11.9959 3.72 12.242 4.44 13.4826 5.59 13.134 6.05 12.9187 6.12 12.3855 6.33 12.0267 6.56 11.8216c-1.78-.205-3.64-.9125-3.64-4.04987.0-.89201.31-1.63022.82-2.20438C3.66 5.36229 3.38 4.52155 3.82 3.39372c0 0 .67-.21531 2.2.84074C6.66 4.04991 7.34 3.95763 8.02 3.95763S9.38 4.04991 10.02 4.23446c1.53-1.0663 2.2-.84074 2.2-.84074C12.66 4.52155 12.38 5.36229 12.3 5.56735 12.81 6.14151 13.12 6.86947 13.12 7.77173c0 3.14767-1.87 3.84487-3.65 4.04987C9.76 12.078 10.01 12.5701 10.01 13.3391 10.01 14.4361 10 15.3179 10 15.5947 10 15.81 10.15 16.0664 10.55 15.9843 13.71 14.8975 16 11.8216 16 8.20235 16 3.67055 12.42.0 8 0z" fill="#000"></path>
+                </svg> Github</a>
+        </p>
+        <div>
+            <q-checkbox v-model="store.prefs.trusted" inline="" toggle-indeterminate="">Trusted</q-checkbox>
+            <q-checkbox v-model="store.prefs.maintenance" inline="" toggle-indeterminate="">Maintenance</q-checkbox>
+            <q-checkbox v-model="store.prefs.img2img" inline="" toggle-indeterminate="">img2img</q-checkbox>
+            <q-checkbox v-model="store.prefs.painting" inline="" toggle-indeterminate="">painting</q-checkbox>
+            <q-checkbox v-model="store.prefs.lora" inline="" toggle-indeterminate="">lora</q-checkbox>
+        </div>
+        <div>
+            <q-checkbox inline="" v-model="store.prefs.typeImage">Dreamer ({{ wCount.image }})</q-checkbox>
+            <q-checkbox inline="" v-model="store.prefs.typeText">Scribe ({{ wCount.text }})</q-checkbox>
+            <q-checkbox inline="" v-model="store.prefs.typeInterrogation">Alchemist ({{ wCount.interrogation }})</q-checkbox>
+        </div>
+        <q-table :dense="$q.screen.lt.md" :columns="wFields" :rows="wDisplay" row-key="id" hide-bottom :pagination="store.prefs.wPagination" @update:pagination="wUpdatePagination">
+            <template v-slot:top-right>
+                <q-input borderless dense debounce="300" v-model="store.prefs.wFilter" placeholder="Search">
+                    <template v-slot:append>
+                        <q-icon name="search" />
+                    </template>
+                </q-input>
+            </template>
+            <template v-slot:body="props">
+                <q-tr :props="props" @click="wRowClicked(props.row)" :class="'search_' + props.row._search">
+                    <q-td key="index" :props="props">
+                        {{ props.rowIndex + 1 }}
+                    </q-td>
+                    <q-td key="type" :props="props">
+                        <span v-if="props.row.type=='image'" class="material-icons-outlined" :title="'Dreamer ' + (props.row.nsfw ? 'NSFW' : '')">image</span>
+                        <span v-else-if="props.row.type=='text'" class="material-icons-outlined" title="Scribe">chat</span>
+                        <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined" title="Alchemist">image_search</span>
+                    </q-td>
+                    <q-td key="name" :props="props">
+                        <span v-if="isWatched(props.row)" class="material-icons-outlined tdIcon text-warning" :title="'regen'">notifications</span> {{ props.row.name }}
+                    </q-td>
+                    <q-td key="bridge_agent" :props="props">
+                        <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
+                        <span v-else class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ', maintenance mode' : '')">verified</span>
+                        v{{ props.row.bridge_agent.split(':')[1] }}
+                    </q-td>
+                    <q-td key="trusted" :props="props">
+                        <span v-if="props.row.trusted" class="material-icons-outlined">done</span>
+                        <span v-else class="material-icons-outlined">close</span>
+                    </q-td>
+                    <q-td key="img2img" :props="props">
+                        <span v-if="props.row.type!='image'">-</span>
+                        <span v-else-if="props.row.img2img" class="material-icons-outlined">done</span>
+                        <span v-else class="material-icons-outlined">close</span>
+                    </q-td>
+                    <q-td key="painting" :props="props">
+                        <span v-if="props.row.type!='image'">-</span>
+                        <span v-else-if="props.row.painting" class="material-icons-outlined">done</span>
+                        <span v-else class="material-icons-outlined">close</span>
+                    </q-td>
+                    <q-td key="lora" :props="props">
+                        <span v-if="props.row.type!='image'">-</span>
+                        <span v-else-if="props.row.lora" class="material-icons-outlined">done</span>
+                        <span v-else class="material-icons-outlined">close</span>
+                    </q-td>
+                    <q-td key="max_pixels" :props="props">
+                        <span v-if="props.row.type!='image'">-</span>
+                        <span v-else>{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                    </q-td>
+                    <q-td key="threads" :props="props">
+                        <span>{{ props.row.threads }}</span>
+                    </q-td>
+                    <q-td key="models" :props="props">
+                        <span v-if="props.row.type=='interrogation'">-</span>
+                        <span v-else-if="props.row.type=='image'">{{ props.row.models.length}}</span>
+                        <div class="model-aphrodite text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('aphrodite')==0" :title="props.row.models[0]"></div>
+                        <div class="model-kobold text-center" v-else-if="props.row.type=='text' && (props.row.models[0].toLowerCase().indexOf('kobold')==0 || props.row.models[0].toLowerCase().indexOf('henk717')==0)" :title="props.row.models[0]"></div>
+                        <div class="model-pygmalion text-center" v-else-if="props.row.type=='text' && props.row.models[0].toLowerCase().indexOf('pygmalion')==0" :title="props.row.models[0]"></div>
+                        <div v-else-if="props.row.type=='text'" class="text-center"><span class="material-icons-outlined text2x" :title="props.row.models[0]">help</span></div>
+                    </q-td>
+                    <q-td key="uptime" :props="props">
+                        {{ convertTime(props.row.uptime) }}
+                    </q-td>
+                    <q-td key="kudos_rewards" :props="props">
+                        {{ new Intl.NumberFormat().format(props.row.kudos_rewards) }}
+                    </q-td>
+                    <q-td key="k/h" :props="props">
+                        {{ new Intl.NumberFormat().format(Math.round((props.row.kudos_details.generated + props.row.kudos_details.uptime) / (props.row.uptime / 3600))) }}
+                    </q-td>
+                </q-tr>
+                <q-tr v-show="props.row._showDetails" :props="props" class="details">
+                    <q-td colspan="100%">
+                        <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/XSx96LYVk/workers-image?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                        <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/f60735cb-12bd-4759-b77f-d1fdf53cf0e7/workers-text?orgId=1&var-worker=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                        <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
+                    </q-td>
+                </q-tr>
+            </template>
+        </q-table>
+    </q-card-section>
+</q-card>`,
+            setup () {
+                const store = useHordeStore();
 
                 const isOwned = (id) => {
-                    if (props.user.username) {
-                        return props.user.worker_ids.findIndex(wid => wid == id) != -1
+                    if (store.user.username) {
+                        return store.user.worker_ids.findIndex(wid => wid == id) != -1
                     }
                 }
 
@@ -284,30 +297,31 @@
                 }
 
                 return {
+                    store,
                     convertTime,
-                    wCount: Vue.computed(() => {
-                        return props.items.reduce((acc, val) => {
+                    wCount: computed(() => {
+                        return store.workers.reduce((acc, val) => {
                             if (!acc[val.type]) acc[val.type] = 1
                             else acc[val.type]++
                             return acc
                         }, {})
                     }),
-                    wDisplay: Vue.computed(() => {
-                        return props.items.filter(w => {
+                    wDisplay: computed(() => {
+                        return store.workers.filter(w => {
                             let result = true
                             if (w.type == "image") {
-                                if (props.prefs.img2img !== null && props.prefs.img2img != w.img2img) result = false
-                                if (props.prefs.painting !== null && props.prefs.painting != w.painting) result = false
-                                if (props.prefs.lora !== null && props.prefs.lora != w.lora) result = false
-                                if (!props.prefs.typeImage) result = false
+                                if (store.prefs.img2img !== null && store.prefs.img2img != w.img2img) result = false
+                                if (store.prefs.painting !== null && store.prefs.painting != w.painting) result = false
+                                if (store.prefs.lora !== null && store.prefs.lora != w.lora) result = false
+                                if (!store.prefs.typeImage) result = false
                             }
-                            if (w.type == "text" && !props.prefs.typeText) result = false
-                            if (w.type == "interrogation" && !props.prefs.typeInterrogation) result = false
-                            if (props.prefs.trusted !== null && props.prefs.trusted != w.trusted) result = false
-                            if (props.prefs.maintenance !== null && props.prefs.maintenance != w.maintenance_mode) result = false
+                            if (w.type == "text" && !store.prefs.typeText) result = false
+                            if (w.type == "interrogation" && !store.prefs.typeInterrogation) result = false
+                            if (store.prefs.trusted !== null && store.prefs.trusted != w.trusted) result = false
+                            if (store.prefs.maintenance !== null && store.prefs.maintenance != w.maintenance_mode) result = false
                             return result
                         }).map((w) => {
-                            if (props.prefs.wFilter && w.name.toLowerCase().indexOf(props.prefs.wFilter.toLowerCase()) != -1) {
+                            if (store.prefs.wFilter && w.name.toLowerCase().indexOf(store.prefs.wFilter.toLowerCase()) != -1) {
                                 if (w.maintenance_mode) {
                                     w._search = "warning"
                                 } else {
@@ -319,7 +333,7 @@
                             return w
                         })
                     }),
-                    wFields: Vue.computed(() => {
+                    wFields: computed(() => {
                         let fields = [
                             {
                                 name: "index",
@@ -356,7 +370,7 @@
                                 classes: (row) => 'tdIcon ' + (row.trusted ? "text-positive" : "text-warning"),
                             },
                         ]
-                        if (props.prefs.typeImage) {
+                        if (store.prefs.typeImage) {
                             fields = fields.concat([
                                 {
                                     name: "img2img",
@@ -438,11 +452,11 @@
                         row._showDetails = !row._showDetails
                     },
                     wUpdatePagination (pagination) {
-                        props.prefs.wPagination = pagination
+                        store.prefs.wPagination = pagination
                     },
                     isWatched: w => {
                         if (isOwned(w.id)) return true
-                        return props.prefs.watched.findIndex(name => name == w.name) != -1
+                        return store.prefs.watched.findIndex(name => name == w.name) != -1
                     }
                 }
             }
@@ -450,79 +464,84 @@
 
         const aiModels = {
             name: 'Models',
-            template: /*html*/`
-    <div>
-        <q-checkbox inline="" v-model="prefs.modelImage">Image ({{ mCount.ckpt }})</q-checkbox>
-        <q-checkbox inline="" v-model="prefs.modelText">Text ({{ mCount.text }})</q-checkbox>
-    </div>
-    <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="mDisplay" row-key="name" :pagination="prefs.mPagination" @update:pagination="mUpdatePagination" :filter="prefs.mFilter" :filter-method="mFilter">
-        <template v-slot:top-right>
-            <q-input borderless dense debounce="300" v-model="prefs.mFilter" placeholder="Filter">
-                <template v-slot:append>
-                    <q-icon name="search" />
-                </template>
-            </q-input>
-        </template>
-        <template v-slot:body="props">
-            <q-tr :props="props" @click="mRowClicked(props.row)" :class="'search_' + props.row._search">
-                <q-td key="type" :props="props">
-                    <span v-if="props.row.type=='text'" class="material-icons-outlined" :title="mTitle(props.row)">chat</span>
-                    <span v-else-if="props.row.showcases" class="material-icons-outlined" :title="mTitle(props.row)">image_search</span>
-                    <span v-else class="material-icons-outlined" :title="mTitle(props.row)">image</span>
-                </q-td>
-                <q-td key="name" :props="props" :title="props.row.description">
-                    {{ props.row.name }}
-                </q-td>
-                <q-td key="version" :props="props">
-                    {{ props.row.version }}
-                </q-td>
-                <q-td key="jobs" :props="props">
-                    {{ props.row.jobs }}
-                </q-td>
-                <q-td key="eta" :props="props">
-                    {{ props.row.eta }}
-                </q-td>
-                <q-td key="performance" :props="props">
-                    {{ new Intl.NumberFormat().format(props.row.performance) }}
-                </q-td>
-                <q-td key="workers" :props="props">
-                    {{ props.row.workers.length }}
-                </q-td>
-            </q-tr>
-            <q-tr v-show="props.row._showDetails" :props="props" class="details">
-                <q-td colspan="100%">
-                    <div class="q-pb-md q-gutter-sm">
-                        <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/LlcCf5Y4z/models-image?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                        <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/a462fc45-bf98-42db-a2a6-2d93b58eda06/models-text?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
-                        <q-btn v-if="props.row.homepage" :href="props.row.homepage" target="homepage" icon="home">Home page</q-btn>
-                    </div>
-                    <div v-if="props.row.showcases" v-for="(src, idx) in props.row.showcases" :key="idx">
-                        <q-img :src="src"></q-img>
-                    </div>
-                    <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
-                </q-td>
-            </q-tr>
-        </template>
-    </q-table>
-            `,
+            template: /*html*/`<q-card class="shadow-2 rounded-borders">
+    <q-card-section>
+        <div>
+            <q-checkbox inline="" v-model="store.prefs.modelImage">Image ({{ mCount.ckpt }})</q-checkbox>
+            <q-checkbox inline="" v-model="store.prefs.modelText">Text ({{ mCount.text }})</q-checkbox>
+        </div>
+        <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="mDisplay" row-key="name" :pagination="store.prefs.mPagination" @update:pagination="mUpdatePagination" :filter="store.prefs.mFilter" :filter-method="mFilter">
+            <template v-slot:top-right>
+                <q-input borderless dense debounce="300" v-model="store.prefs.mFilter" placeholder="Filter">
+                    <template v-slot:append>
+                        <q-icon name="search" />
+                    </template>
+                </q-input>
+            </template>
+            <template v-slot:body="props">
+                <q-tr :props="props" @click="mRowClicked(props.row)" :class="'search_' + props.row._search">
+                    <q-td key="type" :props="props">
+                        <span v-if="props.row.type=='text'" class="material-icons-outlined" :title="mTitle(props.row)">chat</span>
+                        <span v-else-if="props.row.showcases" class="material-icons-outlined" :title="mTitle(props.row)">image_search</span>
+                        <span v-else class="material-icons-outlined" :title="mTitle(props.row)">image</span>
+                    </q-td>
+                    <q-td key="name" :props="props" :title="props.row.description">
+                        {{ props.row.name }}
+                    </q-td>
+                    <q-td key="version" :props="props">
+                        {{ props.row.version }}
+                    </q-td>
+                    <q-td key="jobs" :props="props">
+                        {{ props.row.jobs }}
+                    </q-td>
+                    <q-td key="eta" :props="props">
+                        {{ props.row.eta }}
+                    </q-td>
+                    <q-td key="performance" :props="props">
+                        {{ new Intl.NumberFormat().format(props.row.performance) }}
+                    </q-td>
+                    <q-td key="workers" :props="props">
+                        {{ props.row.workers.length }}
+                    </q-td>
+                </q-tr>
+                <q-tr v-show="props.row._showDetails" :props="props" class="details">
+                    <q-td colspan="100%">
+                        <div class="q-pb-md q-gutter-sm">
+                            <q-btn v-if="props.row.type=='image'" :href="'https://grafana.aihorde.net/d/LlcCf5Y4z/models-image?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                            <q-btn v-if="props.row.type=='text'" :href="'https://grafana.aihorde.net/d/a462fc45-bf98-42db-a2a6-2d93b58eda06/models-text?orgId=1&var-modelname=' + encodeURI(props.row.name)" target="grafana" icon="show_chart">Grafana</q-btn>
+                            <q-btn v-if="props.row.homepage" :href="props.row.homepage" target="homepage" icon="home">Home page</q-btn>
+                        </div>
+                        <div v-if="props.row.showcases" v-for="(src, idx) in props.row.showcases" :key="idx">
+                            <q-img :src="src"></q-img>
+                        </div>
+                        <pre>{{ Object.fromEntries(Object.entries(props.row).filter(([k, v]) => k[0] != "_")) }}</pre>
+                    </q-td>
+                </q-tr>
+            </template>
+        </q-table>
+    </q-card-section>
+</q-card>`,
             props: {
                 prefs: Object,
                 items: Array,
             },
             setup (props, { emit }) {
+                const store = useHordeStore()
+
                 return {
-                    mCount: Vue.computed(() => {
-                        return props.items.reduce((acc, val) => {
+                    store,
+                    mCount: computed(() => {
+                        return store.models.reduce((acc, val) => {
                             if (!acc[val.type]) acc[val.type] = 1
                             else acc[val.type]++
                             return acc
                         }, {})
                     }, {}),
-                    mDisplay: Vue.computed(() => {
-                        return props.items.filter(w => {
+                    mDisplay: computed(() => {
+                        return store.models.filter(w => {
                             let result = true
-                            if (w.type == "text" && !props.prefs.modelText) result = false
-                            if (w.type == "ckpt" && !props.prefs.modelImage) result = false
+                            if (w.type == "text" && !store.prefs.modelText) result = false
+                            if (w.type == "ckpt" && !store.prefs.modelImage) result = false
                             return result
                         })
                     }),
@@ -599,7 +618,7 @@
                         row._showDetails = !row._showDetails
                     },
                     mUpdatePagination (pagination) {
-                        props.prefs.mPagination = pagination
+                        store.prefs.mPagination = pagination
                     },
                 }
             }
@@ -608,102 +627,268 @@
         const aiAlerts = {
             name: 'Alerts',
             template: /*html*/`
-<div>
-    <p>All data is stored only in your browser, you can run this tool locally without web server</p>
-    <p>Receive an email and/or a notification whenever a worker change status (online or offline).</p>
-    <div class=" q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key
-    </div>
-    <q-input v-model="prefs.apiKey" type="password" label="API key"></q-input>
-    <div class="q-mt-md">Destination</div>
-    <q-input v-model="prefs.email" type="email" label="Email" :rules="[value => testPattern.email(value) || 'incorrect email']" hint="Sender and recipent of the alert, must be a 'verified sender'"></q-input>
-    <div class="q-mt-md"><q-btn @click="testEmail" :loading="sendingMail" :disabled="sendingMail || !(prefs.apiKey && prefs.email)">Send test email</q-btn></div>
-    <p>If you input your API key, your workers will be watched</p>
-    <q-input v-model="prefs.aihordeKey" type="password" label="AI Horde API key" :hint="prefs.aihordeKey && user.username ? user.username+', '+new Intl.NumberFormat().format(user.kudos)+' kudos' : ''"></q-input>
-    <div class="q-mt-md"><q-btn icon="add" @click="addWatched"></q-btn> Additional workers to watch (exact name only)</div>
-    <div v-for="(w, idx) in prefs.watched" :key="idx">
-        <q-input v-model.trim="prefs.watched[idx]" :rules="[value => checkOnline(value) || 'Offline or unknown']" debounce="500">
-            <template v-slot:append>
-                <q-btn icon="delete" @click="deleteWatched(idx)" />
-            </template>
-        </q-input>
-    </div>
-</div>
+<q-card class="shadow-2 rounded-borders">
+    <q-card-section>
+        <p>All data is stored only in your browser, you can run this tool locally without web server</p>
+        <p>Receive an email and/or a notification whenever a worker change status (online or offline).</p>
+        <div class=" q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key
+        </div>
+        <q-input v-model="store.prefs.apiKey" type="password" label="API key"></q-input>
+        <div class="q-mt-md">Destination</div>
+        <q-input v-model="store.prefs.email" type="email" label="Email" :rules="[value => testPattern.email(value) || 'incorrect email']" hint="Sender and recipent of the alert, must be a 'verified sender'"></q-input>
+        <div class="q-mt-md"><q-btn @click="testEmail" :loading="sendingMail" :disabled="sendingMail || !(store.prefs.apiKey && store.prefs.email)">Send test email</q-btn></div>
+        <p>If you input your API key, your workers will be watched</p>
+        <q-input v-model="store.prefs.aihordeKey" type="password" label="AI Horde API key" :hint="store.prefs.aihordeKey && store.user.username ? store.user.username+', '+new Intl.NumberFormat().format(store.user.kudos)+' kudos' : ''"></q-input>
+        <div class="q-mt-md"><q-btn icon="add" @click="addWatched"></q-btn> Additional workers to watch (exact name only)</div>
+        <div v-for="(w, idx) in store.prefs.watched" :key="idx">
+            <q-input v-model.trim="store.prefs.watched[idx]" :rules="[value => store.checkOnline(value) || 'Offline or unknown']" debounce="500">
+                <template v-slot:append>
+                    <q-btn icon="delete" @click="deleteWatched(idx)" />
+                </template>
+            </q-input>
+        </div>
+    </q-card-section>
+</q-card>
             `,
-            props: {
-                prefs: Object,
-                user: Object,
-            },
-            emits: ['sendMail', 'test'],
-            setup (props, { emit }) {
-                const sendingMail = Vue.ref(false)
-                const sendMail = Vue.inject('sendMail')
+            setup () {
+                const store = useHordeStore()
+                const sendingMail = ref(false)
 
                 return {
+                    store,
                     testPattern: Quasar.patterns.testPattern,
                     addWatched () {
-                        props.prefs.watched.push('')
+                        store.prefs.watched.push('')
                     },
                     deleteWatched (idx) {
-                        props.prefs.watched.splice(idx, 1)
+                        store.prefs.watched.splice(idx, 1)
                     },
-                    checkOnline: Vue.inject('checkOnline'),
                     sendingMail,
                     async testEmail () {
                         sendingMail.value = true
-                        await sendMail("This is a test email")
+                        await store.sendMail("This is a test email")
                         sendingMail.value = false
                     },
                 }
             }
         }
 
-        const app = Vue.createApp({
-            components: {
-                aiWorkers,
-                aiModels,
-                aiAlerts
-            },
+        const pinia = Pinia.createPinia();
+
+        const useHordeStore = Pinia.defineStore("horde", () => {
+            const workers = ref([])
+            const models = ref([])
+            const user = ref({})
+            const prefs = ref({
+                // workers
+                trusted: null,
+                maintenance: null,
+                img2img: null,
+                painting: null,
+                lora: null,
+                typeImage: true,
+                typeText: false,
+                typeInterrogation: false,
+                wFilter: "",
+                wPagination: {
+                    sortBy: "k/h",
+                    descending: true,
+                    rowsPerPage: 0
+                },
+                // models
+                modelImage: true,
+                modelText: true,
+                mFilter: "",
+                mPagination: {
+                    sortBy: "name",
+                    descending: false,
+                    rowsPerPage: 20,
+                },
+                // alarm settings
+                watched: [],
+                apiKey: null,
+                email: null,
+                // ai horde
+                aihordeKey: '',
+            })
+            const userWorkers = ref({})
+            const watchedStatus = ref({})
+
+            const fetchAPI = async (url) => {
+                let response = await fetch(url)
+                return await response.json()
+            }
+
+            const checkCount = ref(3)
+            const wUpdateData = async () => {
+                let wDetails = workers.value
+                    .filter((w) => {
+                        return w._showDetails
+                    })
+                    .map((w) => w.id)
+                let mDetails = models.value
+                    .filter((m) => {
+                        return m._showDetails
+                    })
+                    .map((m) => m.name)
+                const responses = await Promise.all([
+                    fetchAPI("https://aihorde.net/api/v2/workers"),
+                    fetchAPI("https://aihorde.net/api/v2/status/models?type=image"),
+                    fetchAPI("https://aihorde.net/api/v2/status/models?type=text"),
+                    fetchAPI("https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/stable_diffusion.json"),
+                ])
+                const wModels = {}
+                workers.value = responses[0].map((w) => {
+                    if (wDetails.indexOf(w.id) != -1) {
+                        w._showDetails = true
+                    }
+                    if (w.models) {
+                        w.models.sort((a, b) => {
+                            return a.localeCompare(b)
+                        })
+                        w.models.forEach(m => {
+                            if (!wModels[m]) wModels[m] = []
+                            wModels[m].push(w.name)
+                        })
+                    }
+                    return w
+                })
+                models.value = responses[1].concat(responses[2]).map(m => {
+                    if (mDetails.indexOf(m.name) != -1) {
+                        m._showDetails = true
+                    }
+                    if (!Array.isArray(wModels[m.name])) wModels[m.name] = []
+                    m.workers = wModels[m.name].sort((a, b) => {
+                        return a.localeCompare(b)
+                    })
+                    if (responses[3][m.name]) {
+                        Object.assign(m, responses[3][m.name])
+                    }
+                    return m
+                })
+
+                if (prefs.value.aihordeKey) {
+                    try {
+                        let response = await fetch('https://aihorde.net/api/v2/find_user', {
+                            headers: {
+                                Apikey: prefs.value.aihordeKey,
+                            },
+                        })
+                        user.value = await response.json()
+
+                        // map id => name
+                        user.value.worker_ids.forEach(id => {
+                            if (!userWorkers.value[id]) {
+                                let w = workers.value.find(w => w.id == id)
+                                if (w) {
+                                    if (userWorkers.value[id] === '') {
+                                        // just appeared
+                                        watchedStatus.value[w.name] = false
+                                    }
+                                    userWorkers.value[id] = w.name
+                                } else {
+                                    userWorkers.value[id] = ''
+                                }
+                            }
+                        })
+                    } catch (error) { console.log(error) }
+                }
+
+                const changed = {}
+                prefs.value.watched.forEach(w => {
+                    let online = checkOnline(w)
+                    if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
+                    if (watchedStatus.value[w] != online) changed[w] = online
+                })
+                Object.values(userWorkers.value).forEach(w => {
+                    if (w) {
+                        let online = checkOnline(w)
+                        if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
+                        if (watchedStatus.value[w] != online) changed[w] = online
+                    }
+                })
+                if (Object.keys(changed).length) {
+                    checkCount.value -= 1
+                    console.log('change detected', changed, 'count', checkCount.value)
+                    if (checkCount.value < 1) {
+                        let message = Object.entries(changed).map(([k, v]) => {
+                            watchedStatus.value[k] = v
+                            return k + ' is ' + (v ? 'online' : 'offline')
+                        }).join("\n")
+                        console.log(message)
+                        sendMail(message)
+                        if (Notification.permission == "granted") {
+                            const notification = new Notification("AI Horde worker alert", {
+                                body: message,
+                            })
+                        }
+                        checkCount.value = 3
+                    }
+                } else {
+                    checkCount.value = 3
+                }
+
+            }
+
+            var inited = false
+            if (!inited) {
+                inited = true
+                wUpdateData()
+                setInterval(wUpdateData, 60 * 1000)
+            }
+
+            const checkOnline = (name) => {
+                return workers.value.findIndex(w => {
+                    return w.name == name
+                }) != -1
+            }
+
+            const sendMail = async message => {
+                if (prefs.value.apiKey && prefs.value.email) {
+                    const response = await fetch("https://api.smtp2go.com/v3/email/send", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            api_key: prefs.value.apiKey,
+                            to: [prefs.value.email],
+                            sender: prefs.value.email,
+                            subject: "AI Horde worker alert",
+                            text_body: message,
+                        }),
+                    })
+                    let resp = await response.json() // parses JSON response into native
+                    console.log(resp)
+                }
+            }
+
+            return {
+                workers,
+                models,
+                user,
+                prefs,
+                userWorkers,
+                checkOnline,
+                sendMail
+            }
+        })
+
+        const { createRouter, createWebHashHistory } = VueRouter
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [
+                { path: '/workers', name: "Workers", component: aiWorkers },
+                { path: '/models', name: "Models", component: aiModels },
+                { path: '/alerts', name: "Alerts", component: aiAlerts },
+                { path: "/:pathMatch(.*)*", redirect: "/workers" },
+            ],
+        })
+
+        const app = createApp({
             setup () {
                 Quasar.Dark.set('auto')
-
-                const tab = Vue.ref('workers')
-                const shWorkers = Vue.ref([])
-                const shModels = Vue.ref([])
-                const shUser = Vue.ref({})
-                const prefs = Vue.ref({
-                    // workers
-                    trusted: null,
-                    maintenance: null,
-                    img2img: null,
-                    painting: null,
-                    lora: null,
-                    typeImage: true,
-                    typeText: false,
-                    typeInterrogation: false,
-                    wFilter: "",
-                    wPagination: {
-                        sortBy: "k/h",
-                        descending: true,
-                        rowsPerPage: 0
-                    },
-                    // models
-                    modelImage: true,
-                    modelText: true,
-                    mFilter: "",
-                    mPagination: {
-                        sortBy: "name",
-                        descending: false,
-                        rowsPerPage: 20,
-                    },
-                    // alarm settings
-                    watched: [],
-                    apiKey: null,
-                    email: null,
-                    // ai horde
-                    aihordeKey: '',
-                })
-                const userWorkers = Vue.ref({})
-                const watchedStatus = Vue.ref({})
+                const store = useHordeStore();
 
                 const LOCAL_STORAGE_KEY = "aihorde:prefs"
                 let data = window.localStorage.getItem(LOCAL_STORAGE_KEY)
@@ -714,178 +899,24 @@
                         if (!x.wPagination) x.wPagination = { rowsPerPage: 0 }
                         if (x.modelImage === undefined) x.modelImage = true
                         if (x.modelText === undefined) x.modelText = true
-                        prefs.value = x
+                        store.prefs = x
                     }
                 }
                 window.addEventListener("beforeunload", () => {
-                    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(prefs.value))
+                    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(store.prefs))
                 })
-
-                const checkOnline = (name) => {
-                    return shWorkers.value.findIndex(w => {
-                        return w.name == name
-                    }) != -1
-                }
-                Vue.provide('checkOnline', checkOnline);
-
-                const sendMail = async message => {
-                    if (prefs.value.apiKey && prefs.value.email) {
-                        const response = await fetch("https://api.smtp2go.com/v3/email/send", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({
-                                api_key: prefs.value.apiKey,
-                                to: [prefs.value.email],
-                                sender: prefs.value.email,
-                                subject: "AI Horde worker alert",
-                                text_body: message,
-                            }),
-                        })
-                        let resp = await response.json() // parses JSON response into native
-                        console.log(resp)
-                    }
-                }
-                Vue.provide('sendMail', sendMail);
 
                 // Notifications require https
                 if (location.protocol == 'https:' && Notification.permission == "default") {
                     Notification.requestPermission()
                 }
 
-                const fetchAPI = async (url) => {
-                    let response = await fetch(url)
-                    return await response.json()
-                }
-
-                const checkCount = Vue.ref(3)
-                const wUpdateData = async () => {
-                    let wDetails = shWorkers.value
-                        .filter((w) => {
-                            return w._showDetails
-                        })
-                        .map((w) => w.id)
-                    let mDetails = shModels.value
-                        .filter((m) => {
-                            return m._showDetails
-                        })
-                        .map((m) => m.name)
-                    const responses = await Promise.all([
-                        fetchAPI("https://aihorde.net/api/v2/workers"),
-                        fetchAPI("https://aihorde.net/api/v2/status/models?type=image"),
-                        fetchAPI("https://aihorde.net/api/v2/status/models?type=text"),
-                        fetchAPI("https://raw.githubusercontent.com/Haidra-Org/AI-Horde-image-model-reference/main/stable_diffusion.json"),
-                    ])
-                    const workers = responses[0]
-                    const wModels = {}
-                    shWorkers.value = workers.map((w) => {
-                        if (wDetails.indexOf(w.id) != -1) {
-                            w._showDetails = true
-                        }
-                        if (w.models) {
-                            w.models.sort((a, b) => {
-                                return a.localeCompare(b)
-                            })
-                            w.models.forEach(m => {
-                                if (!wModels[m]) wModels[m] = []
-                                wModels[m].push(w.name)
-                            })
-                        }
-                        return w
-                    })
-                    const models = responses[1].concat(responses[2])
-                    shModels.value = models.map(m => {
-                        if (mDetails.indexOf(m.name) != -1) {
-                            m._showDetails = true
-                        }
-                        if (!Array.isArray(wModels[m.name])) wModels[m.name] = []
-                        m.workers = wModels[m.name].sort((a, b) => {
-                            return a.localeCompare(b)
-                        })
-                        if (responses[3][m.name]) {
-                            Object.assign(m, responses[3][m.name])
-                        }
-                        return m
-                    })
-
-                    if (prefs.value.aihordeKey) {
-                        try {
-                            let response = await fetch('https://aihorde.net/api/v2/find_user', {
-                                headers: {
-                                    Apikey: prefs.value.aihordeKey,
-                                },
-                            })
-                            shUser.value = await response.json()
-
-                            // map id => name
-                            shUser.value.worker_ids.forEach(id => {
-                                if (!userWorkers.value[id]) {
-                                    let w = shWorkers.value.find(w => w.id == id)
-                                    if (w) {
-                                        if (userWorkers.value[id] === '') {
-                                            // just appeared
-                                            watchedStatus.value[w.name] = false
-                                        }
-                                        userWorkers.value[id] = w.name
-                                    } else {
-                                        userWorkers.value[id] = ''
-                                    }
-                                }
-                            })
-                        } catch (error) { console.log(error) }
-                    }
-
-                    const changed = {}
-                    prefs.value.watched.forEach(w => {
-                        let online = checkOnline(w)
-                        if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
-                        if (watchedStatus.value[w] != online) changed[w] = online
-                    })
-                    Object.values(userWorkers.value).forEach(w => {
-                        if (w) {
-                            let online = checkOnline(w)
-                            if (watchedStatus.value[w] == undefined) watchedStatus.value[w] = online
-                            if (watchedStatus.value[w] != online) changed[w] = online
-                        }
-                    })
-                    if (Object.keys(changed).length) {
-                        checkCount.value -= 1
-                        console.log('change detected', changed, 'count', checkCount.value)
-                        if (checkCount.value < 1) {
-                            let message = Object.entries(changed).map(([k, v]) => {
-                                watchedStatus.value[k] = v
-                                return k + ' is ' + (v ? 'online' : 'offline')
-                            }).join("\n")
-                            console.log(message)
-                            sendMail(message)
-                            if (Notification.permission == "granted") {
-                                const notification = new Notification("AI Horde worker alert", {
-                                    body: message,
-                                })
-                            }
-                            checkCount.value = 3
-                        }
-                    } else {
-                        checkCount.value = 3
-                    }
-
-                }
-
-                wUpdateData()
-                setInterval(wUpdateData, 60 * 1000)
-
-                return {
-                    tab,
-                    shWorkers,
-                    shModels,
-                    shUser,
-                    prefs,
-                    sendMail,
-                }
+                return {}
             }
         })
         app.use(Quasar)
+        app.use(pinia)
+        app.use(router)
         app.mount('#q-app')
     </script>
 </body>
