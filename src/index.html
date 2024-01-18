@@ -12,12 +12,14 @@
     <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons|Material+Icons+Outlined" rel="stylesheet" type="text/css">
     <link href="https://cdn.jsdelivr.net/npm/quasar@2/dist/quasar.prod.css" rel="stylesheet" type="text/css">
     <style>
-        .q-header {
+        .q-header,
+        .q-footer {
             background-color: #eee;
             color: black;
         }
 
-        body.body--dark .q-header {
+        body.body--dark .q-header,
+        body.body--dark .q-footer {
             background-color: #080808;
             color: white;
         }
@@ -155,6 +157,7 @@
                     </div>
                 </q-page>
             </q-page-container>
+
         </q-layout>
     </div>
 
@@ -207,7 +210,9 @@
                         <span v-else-if="props.row.type=='interrogation'" class="material-icons-outlined" title="Alchemist">image_search</span>
                     </q-td>
                     <q-td key="name" :props="props">
-                        <span v-if="isWatched(props.row)" class="material-icons-outlined tdIcon text-warning" :title="'regen'">notifications</span> {{ props.row.name }}
+                        <q-btn v-if="isOwned(props.row.id)" color="primary" round size="xs" :icon="props.row.maintenance_mode ? 'play_arrow' : 'pause'" @click.stop="toggleMaintenance(props.row)" :disabled="working" :loading="working"></q-btn>
+                        <span v-if="isWatched(props.row)" class="material-icons-outlined tdIcon text-warning" :title="'regen'">notifications</span>
+                        {{ props.row.name }}
                     </q-td>
                     <q-td key="bridge_agent" :props="props">
                         <span v-if="props.row.bridge_agent.indexOf('reGen')!=-1" class="material-icons-outlined tdIcon" :title="props.row.bridge_agent.split(':')[0] + ' ' + (props.row.maintenance_mode ? ' maintenance' : '')">bug_report</span>
@@ -270,7 +275,9 @@
     </q-card-section>
 </q-card>`,
             setup () {
+                const $q = Quasar.useQuasar()
                 const store = useHordeStore();
+                const working = ref(false)
 
                 const isOwned = (id) => {
                     if (store.user.username) {
@@ -454,9 +461,33 @@
                     wUpdatePagination (pagination) {
                         store.prefs.wPagination = pagination
                     },
+                    isOwned,
                     isWatched: w => {
                         if (isOwned(w.id)) return true
                         return store.prefs.watched.findIndex(name => name == w.name) != -1
+                    },
+                    working,
+                    async toggleMaintenance (w) {
+                        working.value = true
+                        const response = await fetch('https://stablehorde.net/api/v2/workers/' + w.id, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                apikey: store.prefs.aihordeKey,
+                            },
+                            body: JSON.stringify({
+                                maintenance: w.maintenance_mode ? false : true
+                            })
+                        })
+                        const result = await response.json();
+                        console.log(result)
+                        $q.notify({
+                            message: w.maintenance_mode ? 'Out of maintenance mode' : 'In maintenance',
+                            caption: 'Will take a little time to be reflected in the UI, please be patient',
+                            color: w.maintenance_mode ? 'positive' : 'negative',
+                            position: 'top-right'
+                        })
+                        working.value = false
                     }
                 }
             }
@@ -720,7 +751,7 @@
             }
 
             const checkCount = ref(3)
-            const wUpdateData = async () => {
+            const refreshData = async () => {
                 let wDetails = workers.value
                     .filter((w) => {
                         return w._showDetails
@@ -833,8 +864,8 @@
             var inited = false
             if (!inited) {
                 inited = true
-                wUpdateData()
-                setInterval(wUpdateData, 60 * 1000)
+                refreshData()
+                setInterval(refreshData, 60 * 1000)
             }
 
             const checkOnline = (name) => {
@@ -870,7 +901,7 @@
                 prefs,
                 userWorkers,
                 checkOnline,
-                sendMail
+                sendMail,
             }
         })
 
@@ -914,7 +945,11 @@
                 return {}
             }
         })
-        app.use(Quasar)
+        app.use(Quasar, {
+            config: {
+                notify: {}
+            }
+        })
         app.use(pinia)
         app.use(router)
         app.mount('#q-app')
