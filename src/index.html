@@ -213,7 +213,7 @@
         </div>
         <q-table :dense="$q.screen.lt.md" :columns="wFields" :rows="wDisplay" row-key="id" hide-bottom :pagination="store.prefs.wPagination" @update:pagination="wUpdatePagination">
             <template v-slot:top-right>
-                <q-input borderless dense debounce="300" v-model="store.prefs.wFilter" placeholder="Search">
+                <q-input borderless dense clearable debounce="300" v-model="store.prefs.wFilter" placeholder="Search">
                     <template v-slot:append>
                         <q-icon name="search" />
                     </template>
@@ -386,7 +386,7 @@
                                 label: "Worker",
                                 field: "bridge_agent",
                                 align: "left",
-                                classes: (row) => row.maintenance_mode ? "text-negative" : "text-positive"
+                                classes: (row) => row.maintenance_mode ? "text-warning" : "text-positive"
                             },
                             {
                                 name: "trusted",
@@ -523,7 +523,7 @@
         </div>
         <q-table :dense="$q.screen.lt.md" :columns="mFields" :rows="mDisplay" row-key="name" :pagination="store.prefs.mPagination" @update:pagination="mUpdatePagination" :filter="store.prefs.mFilter" :filter-method="mFilter">
             <template v-slot:top-right>
-                <q-input borderless dense debounce="300" v-model="store.prefs.mFilter" placeholder="Filter">
+                <q-input borderless dense clearable debounce="300" v-model="store.prefs.mFilter" placeholder="Filter">
                     <template v-slot:append>
                         <q-icon name="search" />
                     </template>
@@ -682,13 +682,13 @@
     <q-card-section>
         <div class=" q-mt-md">Create a free account at <a href="https://www.smtp2go.com/" target="smtp2go">SMTP2GO</a>, set your email as a "verified sender" and create an API key
         </div>
-        <q-input v-model="store.prefs.apiKey" type="password" label="SMTP2GO API key"></q-input>
+        <q-input v-model="store.prefs.apiKey" type="password" label="SMTP2GO API key" autocomplete="new-password"></q-input>
         <div class="q-mt-md">Destination</div>
-        <q-input v-model="store.prefs.email" type="email" label="Email" :rules="[value => testPattern.email(value) || 'incorrect email']" hint="Sender and recipent of the alert, must be a 'verified sender'"></q-input>
+        <q-input v-model="store.prefs.email" type="email" label="Email" :rules="[value => testPattern.email(value) || 'incorrect email']" hint="Sender and recipent of the alert, must be a 'verified sender'" autocomplete="new-password"></q-input>
         <div class="q-mt-md"><q-btn @click="testEmail" :loading="sendingMail" :disabled="sendingMail || !(store.prefs.apiKey && store.prefs.email)">Send test email</q-btn></div>
         <p>If you input your API key, your workers will be watched</p>
-        <q-input v-model="store.prefs.aihordeKey" type="password" label="AI Horde API key" :hint="store.prefs.aihordeKey && store.user.username ? store.user.username+', '+new Intl.NumberFormat().format(store.user.kudos)+' kudos' : ''"></q-input>
-        <div v-for="w in store.user.workers"><small :class="[w.online ? 'text-positive' : 'text-negative']"><span v-if="w.type=='image'" class="material-icons-outlined">image</span><span v-else-if="w.type=='text'" class="material-icons-outlined">chat</span><span v-else-if="w.type=='interrogation'" class="material-icons-outlined">image_search</span> {{ w.name }} ({{ w.bridge_agent.split(':')[1] }})</small></div>
+        <q-input v-model="store.prefs.aihordeKey" type="password" label="AI Horde API key" :hint="store.prefs.aihordeKey && store.user.username ? store.user.username+', '+new Intl.NumberFormat().format(store.user.kudos)+' kudos' : ''" autocomplete="new-password"></q-input>
+        <div v-for="w in store.user.workers"><small :class="[w.online ? (w.maintenance_mode ? 'text-warning' : 'text-positive') : 'text-negative']"><span v-if="w.type=='image'" class="material-icons-outlined">image</span><span v-else-if="w.type=='text'" class="material-icons-outlined">chat</span><span v-else-if="w.type=='interrogation'" class="material-icons-outlined">image_search</span> {{ w.name }} ({{ w.bridge_agent.split(':')[1] }})</small></div>
         <div class="q-mt-md"><q-btn icon="add" @click="addWatched"></q-btn> Additional workers to watch (exact name only)</div>
         <div v-for="(w, idx) in store.prefs.watched" :key="idx">
             <q-input v-model.trim="store.prefs.watched[idx]" :rules="[value => store.checkOnline(value) || 'Offline or unknown']" debounce="500">
@@ -868,7 +868,11 @@
                     }
                 })
                 if (Object.keys(changed).length) {
-                    checkCount.value -= 1
+                    if (Object.values(changed).find((v) => v)) {
+                        checkCount.value = 0
+                    } else {
+                        checkCount.value -= 1
+                    }
                     console.log('change detected', changed, 'count', checkCount.value)
                     if (checkCount.value < 1) {
                         let message = Object.entries(changed).map(([k, v]) => {
