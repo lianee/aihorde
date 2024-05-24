@@ -258,9 +258,10 @@
                         <span v-else-if="props.row.lora" class="material-icons-outlined">done</span>
                         <span v-else class="material-icons-outlined">close</span>
                     </q-td>
-                    <q-td key="max_pixels" :props="props">
-                        <span v-if="props.row.type!='image'">-</span>
-                        <span v-else>{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                    <q-td key="size" :props="props">
+                        <span v-if="props.row.type=='interrogation'">-</span>
+                        <span v-else-if="props.row.type=='image'">{{ Math.round(props.row.max_pixels / 32768) }}</span>
+                        <span v-else>{{ props.row.max_context_length }}</span>
                     </q-td>
                     <q-td key="threads" :props="props">
                         <span>{{ props.row.threads }}</span>
@@ -423,10 +424,20 @@
                                     align: "center",
                                     classes: (row) => row.type == 'image' ? 'tdIcon ' + (row.lora ? "text-positive" : "text-warning") : ''
                                 },
+                            ])
+                        }
+                        if (store.prefs.typeImage || store.prefs.typeText) {
+                            fields = fields.concat([
                                 {
-                                    name: "max_pixels",
+                                    name: "size",
                                     label: "Size",
-                                    field: "max_pixels",
+                                    field: row => {
+                                        if (row.type == 'image') {
+                                            return row.max_pixels
+                                        } else {
+                                            return row.max_context_length
+                                        }
+                                    },
                                     align: "right",
                                     sortable: true,
                                 },
